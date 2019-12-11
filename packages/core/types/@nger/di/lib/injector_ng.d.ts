@@ -9,6 +9,8 @@ export declare class NullInjector implements Injector {
     clearCache(token: any): void;
     create(records: StaticProvider[], source?: string | null): Injector;
     setStatic(records: StaticProvider[]): void;
+    getRecord(token: any): Record | undefined;
+    setRecord(token: any, record: Record): void;
 }
 /**
  * Concrete injectors implement this interface.
@@ -33,6 +35,8 @@ export declare abstract class Injector {
     abstract create(records: StaticProvider[], source?: string | null): Injector;
     abstract setStatic(records: StaticProvider[]): void;
     abstract clearCache(token: any): void;
+    abstract getRecord(token: any): Record | undefined;
+    abstract setRecord(token: any, record: Record): void;
     static create(providers: StaticProvider[], parent?: Injector): Injector;
     static create(options: {
         providers: StaticProvider[];
@@ -63,6 +67,7 @@ export declare class StaticInjector implements Injector {
     readonly parent: Injector;
     readonly source: string | null;
     private _records;
+    readonly scope: string | null;
     constructor(providers: StaticProvider[], parent?: Injector, source?: string | null);
     clearCache(token: any): void;
     debug(): void;
@@ -70,5 +75,18 @@ export declare class StaticInjector implements Injector {
     create(records: StaticProvider[], source?: string | null): StaticInjector;
     setStatic(records: StaticProvider[]): void;
     toString(): string;
+    getRecord(token: any): Record | undefined;
+    setRecord(token: any, record: Record): void;
+}
+interface Record {
+    fn: Function;
+    useNew: boolean;
+    deps: DependencyRecord[];
+    value: any;
+}
+interface DependencyRecord {
+    token: any;
+    options: number;
 }
 export declare function catchInjectorError(e: any, token: any, injectorErrorName: string, source: string | null): never;
+export {};

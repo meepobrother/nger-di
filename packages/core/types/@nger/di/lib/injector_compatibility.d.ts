@@ -1,6 +1,6 @@
 import { Type, InjectFlags } from './type';
 import { InjectionToken } from './injection_token';
-import { Injector } from './injector';
+import { Injector } from './injector_ng';
 export declare function setCurrentInjector(injector: Injector | null | undefined): Injector | undefined | null;
 export declare function setInjectImplementation(impl: (<T>(token: Type<T> | InjectionToken<T>, flags?: InjectFlags) => T | null) | undefined): (<T>(token: Type<T> | InjectionToken<T>, flags?: InjectFlags) => T | null) | undefined;
 export declare function injectInjectorOnly<T>(token: Type<T> | InjectionToken<T>): T;

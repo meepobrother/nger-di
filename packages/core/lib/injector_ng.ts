@@ -1,9 +1,10 @@
 import { Type, InjectFlags, OptionFlags } from './type';
 import { getClosureSafeProperty, stringify, resolveForwardRef } from './util';
 import { InjectionToken } from './injection_token';
-import { ɵɵinject } from './injector_compatibility';
+import { ɵɵinject, setCurrentInjector } from './injector_compatibility';
 import { ɵɵdefineInjectable } from './def';
 import { ConstructorProvider, ExistingProvider, FactoryProvider, StaticClassProvider, StaticProvider, ValueProvider } from './type';
+import { INJECTOR_SCOPE } from './scope';
 export const SOURCE = '__source';
 const _THROW_IF_NOT_FOUND = Symbol.for(`_THROW_IF_NOT_FOUND`);
 export const THROW_IF_NOT_FOUND = _THROW_IF_NOT_FOUND;
@@ -27,6 +28,10 @@ export class NullInjector implements Injector {
         return new NullInjector() as Injector;
     }
     setStatic(records: StaticProvider[]) { }
+    getRecord(token: any): Record | undefined {
+        return;
+    }
+    setRecord(token: any, record: Record) { }
 }
 
 /**
@@ -52,6 +57,8 @@ export abstract class Injector {
     abstract create(records: StaticProvider[], source?: string | null): Injector;
     abstract setStatic(records: StaticProvider[]): void;
     abstract clearCache(token: any): void;
+    abstract getRecord(token: any): Record | undefined;
+    abstract setRecord(token: any, record: Record): void;
     static create(providers: StaticProvider[], parent?: Injector): Injector;
     static create(options: { providers: StaticProvider[], parent?: Injector, name?: string }): Injector;
     static create(
@@ -114,7 +121,7 @@ export class StaticInjector implements Injector {
     readonly source: string | null;
 
     private _records: Map<any, Record>;
-
+    readonly scope: string | null;
     constructor(
         providers: StaticProvider[],
         parent: Injector = NULL_INJECTOR,
@@ -127,7 +134,7 @@ export class StaticInjector implements Injector {
             Injector, <Record>{ token: Injector, fn: IDENT, deps: EMPTY, value: this, useNew: false });
         records.set(
             INJECTOR, <Record>{ token: INJECTOR, fn: IDENT, deps: EMPTY, value: this, useNew: false });
-        recursivelyProcessProviders(records, providers);
+        this.scope = recursivelyProcessProviders(records, providers);
     }
     clearCache(token: any): void {
         const record = this._records.get(token)
@@ -143,11 +150,31 @@ export class StaticInjector implements Injector {
         });
     }
     get<T>(token: IToken<T>, notFoundValue?: T | undefined | null, flags: InjectFlags = InjectFlags.Default): T {
-        const record = this._records.get(token);
+        const records = this._records;
+        let record = records.get(token);
+        // if (record === undefined) {
+        //     // This means we have never seen this record, see if it is tree shakable provider.
+        //     const injectableDef = getInjectableDef(token);
+        //     if (injectableDef) {
+        //         const providedIn = injectableDef && injectableDef.providedIn;
+        //         if (providedIn === 'any' || providedIn != null && providedIn === this.scope) {
+        //             records.set(
+        //                 token, record = resolveProvider(
+        //                     { provide: token, useFactory: injectableDef.factory, deps: EMPTY }));
+        //         }
+        //     }
+        //     if (record === undefined) {
+        //         // Set record to null to make sure that we don't go through expensive lookup above again.
+        //         records.set(token, null as any);
+        //     }
+        // }
+        let lastInjector = setCurrentInjector(this);
         try {
-            return tryResolveToken(token, record, this._records, this.parent, notFoundValue, flags);
+            return tryResolveToken(token, record, records, this.parent, notFoundValue, flags);
         } catch (e) {
             return catchInjectorError(e, token, 'StaticInjectorError', this.source);
+        } finally {
+            setCurrentInjector(lastInjector);
         }
     }
     create(records: StaticProvider[], source: string | null = null) {
@@ -160,6 +187,12 @@ export class StaticInjector implements Injector {
         const tokens = <string[]>[], records = this._records;
         records.forEach((v, token) => tokens.push(stringify(token)));
         return `StaticInjector[${tokens.join(', ')}]`;
+    }
+    getRecord(token: any): Record | undefined {
+        return this._records.get(token);
+    }
+    setRecord(token: any, record: Record) {
+        this._records.set(token, record)
     }
 }
 
@@ -179,7 +212,7 @@ interface DependencyRecord {
 }
 
 function resolveProvider(provider: SupportedProvider): Record {
-    const deps = computeDeps(provider)
+    const deps = computeDeps(provider);
     let fn: Function = IDENT;
     let value: any = EMPTY;
     let useNew: boolean = false;
@@ -209,13 +242,15 @@ function multiProviderMixError(token: any) {
     return staticError('Cannot mix multi providers and regular providers', token);
 }
 
-function recursivelyProcessProviders(records: Map<any, Record>, provider: StaticProvider | StaticProvider[]) {
+function recursivelyProcessProviders(records: Map<any, Record>, provider: StaticProvider | StaticProvider[]): string |
+    null {
+    let scope: string | null = null;
     if (provider) {
         provider = resolveForwardRef(provider);
-        if (provider instanceof Array) {
+        if (Array.isArray(provider)) {
             // if we have an array recurse into the array
             for (let i = 0; i < provider.length; i++) {
-                recursivelyProcessProviders(records, provider[i]);
+                scope = recursivelyProcessProviders(records, provider[i]) || scope;
             }
         } else if (typeof provider === 'function') {
             // Functions were supported in ReflectiveInjector, but are not here. For safety give useful
@@ -250,16 +285,25 @@ function recursivelyProcessProviders(records: Map<any, Record>, provider: Static
             if (record && record.fn == MULTI_PROVIDER_FN) {
                 throw multiProviderMixError(token);
             }
+            if (token === INJECTOR_SCOPE) {
+                scope = resolvedProvider.value;
+            }
             records.set(token, resolvedProvider);
         } else {
             throw staticError('Unexpected provider', provider);
         }
     }
+    return scope;
 }
 
 function tryResolveToken(
-    token: any, record: Record | undefined, records: Map<any, Record>, parent: Injector,
-    notFoundValue: any, flags: InjectFlags): any {
+    token: any,
+    record: Record | undefined,
+    records: Map<any, Record>,
+    parent: Injector,
+    notFoundValue: any,
+    flags: InjectFlags
+): any {
     try {
         return resolveToken(token, record, records, parent, notFoundValue, flags);
     } catch (e) {
@@ -278,8 +322,13 @@ function tryResolveToken(
 }
 
 function resolveToken(
-    token: any, record: Record | undefined, records: Map<any, Record>, parent: Injector,
-    notFoundValue: any, flags: InjectFlags): any {
+    token: any,
+    record: Record | undefined,
+    records: Map<any, Record>,
+    parent: Injector,
+    notFoundValue: any,
+    flags: InjectFlags
+): any {
     let value;
     if (record && !(flags & InjectFlags.SkipSelf)) {
         // If we don't have a record, this implies that we don't own the provider hence don't know how
@@ -311,7 +360,7 @@ function resolveToken(
                         records,
                         // If we don't know how to resolve dependency and we should not check parent for it,
                         // than pass in Null injector.
-                        !childRecord && !(options & OptionFlags.CheckParent) ? NULL_INJECTOR : parent,
+                        !childRecord && !(options & OptionFlags.CheckParent) ? Injector.NULL : parent,
                         options & OptionFlags.Optional ? null : Injector.THROW_IF_NOT_FOUND,
                         InjectFlags.Default));
                 }
@@ -320,6 +369,10 @@ function resolveToken(
         }
     } else if (!(flags & InjectFlags.Self)) {
         value = parent.get(token, notFoundValue, InjectFlags.Default);
+    } else if (!(flags & InjectFlags.Optional)) {
+        value = Injector.NULL.get(token, notFoundValue);
+    } else {
+        value = Injector.NULL.get(token, typeof notFoundValue !== 'undefined' ? notFoundValue : null);
     }
     return value;
 }

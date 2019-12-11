@@ -12,7 +12,7 @@ export interface ValueProvider extends ValueSansProvider {
 }
 export interface StaticClassSansProvider {
     useClass: Type<any>;
-    deps: any[];
+    deps?: any[];
 }
 export interface StaticClassProvider extends StaticClassSansProvider {
     provide: any;
