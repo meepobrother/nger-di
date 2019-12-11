@@ -326,7 +326,7 @@ function resolveToken(
 function computeDeps(provider: StaticProvider): DependencyRecord[] {
     let deps: DependencyRecord[] = EMPTY;
     const providerDeps: any[] =
-        (provider as ExistingProvider & StaticClassProvider & ConstructorProvider).deps;
+        (provider as ExistingProvider & StaticClassProvider & ConstructorProvider).deps || [];
     if (providerDeps && providerDeps.length) {
         deps = [];
         for (let i = 0; i < providerDeps.length; i++) {
