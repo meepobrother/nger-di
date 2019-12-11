@@ -56,11 +56,12 @@ export abstract class Injector {
     static create(options: { providers: StaticProvider[], parent?: Injector, name?: string }): Injector;
     static create(
         options: StaticProvider[] | { providers: StaticProvider[], parent?: Injector, name?: string },
-        parent?: Injector): Injector {
+        parent?: Injector
+    ): Injector {
         if (Array.isArray(options)) {
             return new StaticInjector(options, parent);
         } else {
-            return new StaticInjector(options.providers, options.parent, options.name || null);
+            return new StaticInjector(options.providers, options.parent || parent, options.name || null);
         }
     }
 
@@ -178,7 +179,7 @@ interface DependencyRecord {
 }
 
 function resolveProvider(provider: SupportedProvider): Record {
-    const deps = computeDeps(provider);
+    const deps = computeDeps(provider)
     let fn: Function = IDENT;
     let value: any = EMPTY;
     let useNew: boolean = false;
