@@ -1,7 +1,7 @@
 import { Type, InjectFlags } from './type';
 import { stringify } from './util';
 import { InjectionToken } from './injection_token';
-import { Injector } from './injector';
+import { Injector } from './injector_ng';
 import { getInjectableDef, ɵɵInjectableDef } from './def';
 let _currentInjector: Injector | undefined | null = undefined;
 
