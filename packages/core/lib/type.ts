@@ -102,7 +102,7 @@ export function isClassProvider(val: any): val is ClassProvider {
  * ->{
  *      provide: ImsDemo,
  *      useClass: ImsDemo,
- *      eps: any[],
+ *      deps: any[],
  *      multi: false
  * }
  */
