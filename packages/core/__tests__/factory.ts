@@ -1,11 +1,4 @@
-# `@nger/di`
-
-> @nger/di 依赖注入
-
-## Usage
-
-```ts
-import { Injector, InjectFlags } from '@nger/di';
+import { Injector, InjectFlags } from '../lib';
 export class Demo1 {
     time: number = new Date().getTime() + Math.random()
 }
@@ -31,12 +24,14 @@ const injector2 = Injector.create([{
 }, {
     provide: Demo2,
     deps: [
-        Demo1
+        [Demo1, InjectFlags.SkipSelf]
     ]
 }], injector)
 
 const demo1 = injector2.get(Demo1, undefined, InjectFlags.SkipSelf)
 const demo2 = injector.get(Demo1)
+const demo3 = injector.get(Demo2)
+
 // true
 const isEqual = demo2 === demo1;
-```
+debugger;

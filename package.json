@@ -2,11 +2,12 @@
   "name": "root",
   "private": true,
   "devDependencies": {
-    "lerna": "^3.13.1"
+    "lerna": "^3.13.1",
+    "tsserver": "tsserver"
   },
   "dependencies": {
-    "ts-node": "^8.5.2",
+    "ts-node": "^8.5.4",
     "tsconfig-paths": "^3.9.0",
-    "typescript": "^3.7.2"
+    "typescript": "3.7.3"
   }
 }
