@@ -5,7 +5,7 @@ import { Provider, Type, ModuleWithProviders } from '../type';
 export declare const ModuleMetadataKey = "ModuleMetadataKey";
 export interface ModuleOptions {
     id?: any;
-    providers?: Provider[];
+    providers?: (Provider[] | Provider)[];
     imports?: Array<Type<any> | ModuleWithProviders<any>>;
     exports?: Array<any>;
     bootstrap?: Array<Type<any>>;
