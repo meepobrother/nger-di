@@ -1,4 +1,4 @@
-import { createClassDecorator, createParameterDecorator, IParameterDecorator, IConstructorDecorator } from '@nger/decorator';
+import { createClassDecorator, createParameterDecorator, IParameterDecorator, IConstructorDecorator, IClassDecorator } from '@nger/decorator';
 import { Provider, Type, ModuleWithProviders } from '../type';
 /**
  * Module
@@ -22,6 +22,26 @@ export interface InjectableOptions {
     providedIn?: Type<any> | 'root' | null | string;
 }
 export const Injectable = createClassDecorator<InjectableOptions>(InjectableMetadataKey);
+
+/**
+ * controller
+ */
+export const ControllerMetadataKey = `ControllerMetadataKey`;
+export interface ControllerOptions {
+    path?: string;
+}
+export const Controller = createClassDecorator<ControllerOptions | string>(ControllerMetadataKey, (item: IClassDecorator<any, ControllerOptions | string>) => {
+    if (item.options) {
+        if (typeof item.options === 'string') {
+            item.options = {
+                path: item.options
+            }
+        }
+    }
+    item.options = {
+        path: ``
+    }
+});
 
 /**
  * inject
