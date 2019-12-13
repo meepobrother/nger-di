@@ -14,7 +14,7 @@ export function providerToStaticProvider(provider: Provider): StaticProvider {
         const deps: any[] = getClassInjectDeps(nger);
         const injects = nger.constructors.filter(ctl => ctl.metadataKey === InjectMetadataKey) as IConstructorDecorator<any, InjectOptions>[];
         injects.map(it => {
-            deps.push([it.options.token])
+            if (it.options) deps.push([it.options.token])
         });
         return {
             provide: provider.provide,
@@ -44,7 +44,7 @@ export function getClassInjectDeps(nger: INgerDecorator) {
                 const skipSelf = parameters.find(ctl => ctl.metadataKey === SkipSelfMetadataKey);
                 if (skipSelf) pros.push(InjectFlags.SkipSelf);
             }
-            pros.push(it.options.token);
+            if (it.options) pros.push(it.options.token);
             deps[it.parameterIndex] = pros;
         });
         cls.parameters.map((it, index) => {

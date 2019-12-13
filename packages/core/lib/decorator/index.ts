@@ -1,4 +1,4 @@
-import { createClassDecorator, createParameterDecorator } from '@nger/decorator';
+import { createClassDecorator, createParameterDecorator, IParameterDecorator, IConstructorDecorator } from '@nger/decorator';
 import { Provider, Type, ModuleWithProviders } from '../type';
 /**
  * Module
@@ -19,7 +19,7 @@ export const NgModule = Module;
  */
 export const InjectableMetadataKey = `InjectableMetadataKey`;
 export interface InjectableOptions {
-    providedIn?: Type<any> | 'root' | null;
+    providedIn?: Type<any> | 'root' | null | string;
 }
 export const Injectable = createClassDecorator<InjectableOptions>(InjectableMetadataKey);
 
@@ -30,7 +30,27 @@ export const InjectMetadataKey = `InjectMetadataKey`;
 export interface InjectOptions {
     token: any;
 }
-export const Inject = createParameterDecorator<InjectOptions>(InjectMetadataKey);
+function isInjectOptions(opt: any): opt is InjectOptions {
+    return opt && !!opt.token;
+}
+export const Inject = createParameterDecorator<InjectOptions | any>(InjectMetadataKey, (item: IParameterDecorator<any, InjectOptions> | IConstructorDecorator<any, InjectOptions>) => {
+    if (item.options) {
+        if (isInjectOptions(item.options)) {
+            item.options = {
+                token: item.parameterType,
+                ...item.options
+            }
+        } else {
+            item.options = {
+                token: item.options
+            }
+        }
+    } else {
+        item.options = {
+            token: item.parameterType
+        }
+    }
+});
 
 /**
  * 可空
