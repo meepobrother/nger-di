@@ -28,18 +28,28 @@ export const Injectable = createClassDecorator<InjectableOptions>(InjectableMeta
  */
 export const ControllerMetadataKey = `ControllerMetadataKey`;
 export interface ControllerOptions {
-    path?: string;
+    path: string;
+    providers?: (Provider | Provider[])[];
 }
 export const Controller = createClassDecorator<ControllerOptions | string>(ControllerMetadataKey, (item: IClassDecorator<any, ControllerOptions | string>) => {
     if (item.options) {
         if (typeof item.options === 'string') {
             item.options = {
+                providers: [],
                 path: item.options
             }
+        } else {
+            item.options = {
+                providers: [],
+                path: ``,
+                ...item.options
+            }
         }
-    }
-    item.options = {
-        path: ``
+    } else {
+        item.options = {
+            providers: [],
+            path: ``
+        }
     }
 });
 
