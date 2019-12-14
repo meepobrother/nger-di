@@ -189,7 +189,9 @@ export class StaticInjector implements Injector {
         return `StaticInjector[${tokens.join(', ')}]`;
     }
     getRecord(token: any): Record | undefined {
-        return this._records.get(token);
+        const record = this._records.get(token);
+        if (record) return record;
+        return this.parent && this.parent.getRecord(token)
     }
     setRecord(token: any, record: Record) {
         this._records.set(token, record)
