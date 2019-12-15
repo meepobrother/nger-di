@@ -10,6 +10,7 @@ export const THROW_IF_NOT_FOUND = _THROW_IF_NOT_FOUND;
 import { getINgerDecorator, IClassDecorator } from '@nger/decorator';
 import { InjectableMetadataKey, InjectableOptions } from './decorator';
 export function getInjectableDef(token: any): InjectableOptions | undefined {
+    if(!token) return undefined;
     if (token instanceof InjectionToken) {
         if (token.options) {
             return token.options;
