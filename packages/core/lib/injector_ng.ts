@@ -10,7 +10,7 @@ export const THROW_IF_NOT_FOUND = _THROW_IF_NOT_FOUND;
 import { getINgerDecorator, IClassDecorator } from '@nger/decorator';
 import { InjectableMetadataKey, InjectableOptions } from './decorator';
 export function getInjectableDef(token: any): InjectableOptions | undefined {
-    if(!token) return undefined;
+    if (!token) return undefined;
     if (token instanceof InjectionToken) {
         if (token.options) {
             return token.options;
@@ -156,21 +156,28 @@ export class StaticInjector implements Injector {
         const records = this._records;
         let record = records.get(token);
         if (record === undefined) {
-            const injectableDef = getInjectableDef(token);
-            if (injectableDef) {
-                const providedIn = injectableDef && injectableDef.providedIn;
-                if (providedIn === 'any' || providedIn != null && providedIn === this.scope) {
-                    if (injectableDef.factory) {
-                        record = resolveProvider({ provide: token, useFactory: injectableDef.factory, deps: injectableDef.deps || EMPTY })
-                        records.set(
-                            token,
-                            record
-                        );
+            if (typeof token === 'string') { }
+            else if (typeof token === 'number') { }
+            else if (typeof token === 'bigint') { }
+            else if (typeof token === 'boolean') { }
+            else if (typeof token === 'undefined') { }
+            else {
+                const injectableDef = getInjectableDef(token);
+                if (injectableDef) {
+                    const providedIn = injectableDef && injectableDef.providedIn;
+                    if (providedIn === 'any' || providedIn != null && providedIn === this.scope) {
+                        if (injectableDef.factory) {
+                            record = resolveProvider({ provide: token, useFactory: injectableDef.factory, deps: injectableDef.deps || EMPTY })
+                            records.set(
+                                token,
+                                record
+                            );
+                        }
                     }
                 }
-            }
-            if (record === undefined) {
-                records.set(token, null as any);
+                if (record === undefined) {
+                    records.set(token, null as any);
+                }
             }
         }
         let lastInjector = setCurrentInjector(this);
