@@ -4,7 +4,7 @@ export class InjectionToken<T> {
     readonly name: string;
     constructor(
         protected _desc: string,
-        protected options?: {
+        public options?: {
             providedIn?: Type<any> | 'root' | null,
             factory: () => T
         }

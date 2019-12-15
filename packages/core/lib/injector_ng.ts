@@ -1,14 +1,24 @@
 import { Type, InjectFlags, OptionFlags } from './type';
 import { getClosureSafeProperty, stringify, resolveForwardRef } from './util';
 import { InjectionToken } from './injection_token';
-import { ɵɵinject, setCurrentInjector } from './injector_compatibility';
-import { ɵɵdefineInjectable } from './def';
+import { setCurrentInjector } from './injector_compatibility';
 import { ConstructorProvider, ExistingProvider, FactoryProvider, StaticClassProvider, StaticProvider, ValueProvider } from './type';
 import { INJECTOR_SCOPE } from './scope';
 export const SOURCE = '__source';
 const _THROW_IF_NOT_FOUND = Symbol.for(`_THROW_IF_NOT_FOUND`);
 export const THROW_IF_NOT_FOUND = _THROW_IF_NOT_FOUND;
-
+import { getINgerDecorator, IClassDecorator } from '@nger/decorator';
+import { InjectableMetadataKey, InjectableOptions } from './decorator';
+export function getInjectableDef(token: any): InjectableOptions | undefined {
+    if (token instanceof InjectionToken) {
+        if (token.options) {
+            return token.options;
+        }
+    }
+    const nger = getINgerDecorator(token);
+    const injectable = nger.classes.find(it => it.metadataKey === InjectableMetadataKey) as IClassDecorator<any, InjectableOptions>;
+    return injectable && injectable.options;
+}
 export const INJECTOR = new InjectionToken<Injector>(
     'INJECTOR',
     -1 as any  // `-1` is used by Ivy DI system as special value to recognize it as `Injector`.
@@ -71,13 +81,6 @@ export abstract class Injector {
             return new StaticInjector(options.providers, options.parent || parent, options.name || null);
         }
     }
-
-    /** @nocollapse */
-    static ngInjectableDef = ɵɵdefineInjectable({
-        providedIn: 'any' as any,
-        factory: () => ɵɵinject(INJECTOR),
-    });
-
     /**
      * @internal
      * @nocollapse
@@ -119,7 +122,6 @@ export type IToken<T> =
 export class StaticInjector implements Injector {
     readonly parent: Injector;
     readonly source: string | null;
-
     private _records: Map<any, Record>;
     readonly scope: string | null;
     constructor(
@@ -152,22 +154,24 @@ export class StaticInjector implements Injector {
     get<T>(token: IToken<T>, notFoundValue?: T | undefined | null, flags: InjectFlags = InjectFlags.Default): T {
         const records = this._records;
         let record = records.get(token);
-        // if (record === undefined) {
-        //     // This means we have never seen this record, see if it is tree shakable provider.
-        //     const injectableDef = getInjectableDef(token);
-        //     if (injectableDef) {
-        //         const providedIn = injectableDef && injectableDef.providedIn;
-        //         if (providedIn === 'any' || providedIn != null && providedIn === this.scope) {
-        //             records.set(
-        //                 token, record = resolveProvider(
-        //                     { provide: token, useFactory: injectableDef.factory, deps: EMPTY }));
-        //         }
-        //     }
-        //     if (record === undefined) {
-        //         // Set record to null to make sure that we don't go through expensive lookup above again.
-        //         records.set(token, null as any);
-        //     }
-        // }
+        if (record === undefined) {
+            const injectableDef = getInjectableDef(token);
+            if (injectableDef) {
+                const providedIn = injectableDef && injectableDef.providedIn;
+                if (providedIn === 'any' || providedIn != null && providedIn === this.scope) {
+                    if (injectableDef.factory) {
+                        record = resolveProvider({ provide: token, useFactory: injectableDef.factory, deps: injectableDef.deps || EMPTY })
+                        records.set(
+                            token,
+                            record
+                        );
+                    }
+                }
+            }
+            if (record === undefined) {
+                records.set(token, null as any);
+            }
+        }
         let lastInjector = setCurrentInjector(this);
         try {
             return tryResolveToken(token, record, records, this.parent, notFoundValue, flags);
