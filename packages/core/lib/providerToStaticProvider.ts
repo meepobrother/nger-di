@@ -1,4 +1,4 @@
-import { getINgerDecorator, IConstructorDecorator, INgerDecorator } from '@nger/decorator';
+import { getINgerDecorator, IConstructorDecorator, INgerDecorator, IParameterDecorator } from '@nger/decorator';
 import { InjectMetadataKey, InjectOptions, OptionalMetadataKey, SelfMetadataKey, SkipSelfMetadataKey } from './decorator';
 import { isTypeProvider, Provider, StaticProvider, isClassProvider, InjectFlags } from './type';
 export function providerToStaticProvider(provider: Provider): StaticProvider {
@@ -32,21 +32,24 @@ export function getClassInjectDeps(nger: INgerDecorator) {
     const cls = nger.classes.find(ct => ct);
     if (cls) {
         deps = new Array(cls.parameters.length);
-        const injects = nger.constructors.filter(ctl => ctl.metadataKey === InjectMetadataKey) as IConstructorDecorator<any, InjectOptions>[];
-        injects.map(it => {
-            const parameters = nger.constructors.filter(ctl => ctl.parameterIndex === it.parameterIndex);
-            const pros: any = [];
-            if (parameters) {
-                const optional = parameters.find(ctl => ctl.metadataKey === OptionalMetadataKey);
-                if (optional) pros.push(InjectFlags.Optional);
-                const self = parameters.find(ctl => ctl.metadataKey === SelfMetadataKey);
-                if (self) pros.push(InjectFlags.Self);
-                const skipSelf = parameters.find(ctl => ctl.metadataKey === SkipSelfMetadataKey);
-                if (skipSelf) pros.push(InjectFlags.SkipSelf);
+        nger.constructors.map(it => {
+            deps[it.parameterIndex] = deps[it.parameterIndex] || [];
+            if (it.metadataKey === OptionalMetadataKey) {
+                deps[it.parameterIndex].push(InjectFlags.Optional)
+            } else if (it.metadataKey === SelfMetadataKey) {
+                deps[it.parameterIndex].push(InjectFlags.Self)
+            } else if (it.metadataKey === SkipSelfMetadataKey) {
+                deps[it.parameterIndex].push(InjectFlags.SkipSelf)
+            } else if (it.metadataKey === InjectMetadataKey) {
+                let item = it as IConstructorDecorator<any, InjectOptions>;
+                const options = item.options
+                if (options) {
+                    deps[it.parameterIndex].push(options.token)
+                }
+            } else {
+                console.log(`getClassInjectDeps error ${it.metadataKey}`)
             }
-            if (it.options) pros.push(it.options.token);
-            deps[it.parameterIndex] = pros;
-        });
+        })
         cls.parameters.map((it, index) => {
             deps[index] = deps[index] || it;
         })

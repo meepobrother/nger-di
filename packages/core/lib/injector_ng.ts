@@ -166,26 +166,30 @@ export class StaticInjector implements Injector {
             else if (typeof token === 'boolean') { }
             else if (typeof token === 'undefined') { }
             else {
-                const injectableDef = getInjectableDef(token);
-                if (injectableDef) {
-                    const providedIn = injectableDef && injectableDef.providedIn;
-                    if (providedIn === 'any' || providedIn != null && providedIn === this.scope) {
-                        if (injectableDef.factory) {
-                            record = resolveProvider({ provide: token, useFactory: injectableDef.factory, deps: injectableDef.deps || EMPTY })
-                            records.set(
-                                token,
-                                record
-                            );
+                const nger = getINgerDecorator(token as any);
+                let handler = false;
+                if (nger.classes.length > 0) {
+                    const injectableDef = getInjectableDef(token);
+                    if (injectableDef) {
+                        const providedIn = injectableDef && injectableDef.providedIn;
+                        if (providedIn === 'any' || providedIn != null && providedIn === this.scope) {
+                            if (injectableDef.factory) {
+                                record = resolveProvider({ provide: token, useFactory: injectableDef.factory, deps: injectableDef.deps || EMPTY })
+                                records.set(
+                                    token,
+                                    record
+                                );
+                                handler = true;
+                            }
                         }
                     }
-                }
-                const nger = getINgerDecorator(token as any);
-                if (nger.classes.length > 0) {
-                    record = resolveProvider(providerToStaticProvider(token as any));
-                    records.set(
-                        token,
-                        record
-                    );
+                    if (!handler) {
+                        record = resolveProvider(providerToStaticProvider(token as any));
+                        records.set(
+                            token,
+                            record
+                        );
+                    }
                 }
                 if (record === undefined) {
                     records.set(token, null as any);
