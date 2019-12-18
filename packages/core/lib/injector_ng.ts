@@ -8,7 +8,7 @@ export const SOURCE = '__source';
 const _THROW_IF_NOT_FOUND = Symbol.for(`_THROW_IF_NOT_FOUND`);
 export const THROW_IF_NOT_FOUND = _THROW_IF_NOT_FOUND;
 import { getINgerDecorator, IClassDecorator } from '@nger/decorator';
-import { InjectableMetadataKey, InjectableOptions, Optional, SkipSelf, Self } from './decorator';
+import { InjectableMetadataKey, InjectableOptions, Optional, SkipSelf, Self, Inject } from './decorator';
 import { providerToStaticProvider } from './providerToStaticProvider';
 export function getInjectableDef(token: any): InjectableOptions | undefined {
     if (!token) return undefined;
@@ -412,7 +412,7 @@ function computeDeps(provider: StaticProvider): DependencyRecord[] {
         for (let i = 0; i < providerDeps.length; i++) {
             let options = OptionFlags.Default;
             let token = resolveForwardRef(providerDeps[i]);
-            if (token instanceof Array) {
+            if (Array.isArray(token)) {
                 for (let j = 0, annotations = token; j < annotations.length; j++) {
                     const annotation = annotations[j];
                     if (annotation === InjectFlags.Optional || annotation instanceof Optional) {
@@ -421,6 +421,12 @@ function computeDeps(provider: StaticProvider): DependencyRecord[] {
                         options = options & ~OptionFlags.CheckSelf;
                     } else if (annotation === InjectFlags.Self || annotation instanceof Self) {
                         options = options & ~OptionFlags.CheckParent;
+                    } else if (annotation instanceof Inject) {
+                        if (annotation.options) {
+                            token = resolveForwardRef(annotation.options.token);
+                        } else {
+                            throw new Error(`Inject options token not found!`)
+                        }
                     } else {
                         token = resolveForwardRef(annotation);
                     }

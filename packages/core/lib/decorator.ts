@@ -19,7 +19,7 @@ export interface InjectOptions {
 function isInjectOptions(opt: any): opt is InjectOptions {
     return opt && !!opt.token;
 }
-export const Inject = createParameterDecorator<InjectOptions | any>(InjectMetadataKey, (item: IParameterDecorator<any, InjectOptions> | IConstructorDecorator<any, InjectOptions>) => {
+export const Inject = createParameterDecorator<InjectOptions | any, InjectOptions>(InjectMetadataKey, (item: IParameterDecorator<any, InjectOptions> | IConstructorDecorator<any, InjectOptions>) => {
     if (item.options) {
         if (isInjectOptions(item.options)) {
             item.options = {
@@ -39,7 +39,7 @@ export const Inject = createParameterDecorator<InjectOptions | any>(InjectMetada
 });
 
 export const InjectProMetadataKey = `InjectProMetadataKey`;
-export const InjectPro = createPropertyDecorator<InjectOptions | any>(InjectProMetadataKey, (item: IPropertyDecorator<any, InjectOptions>) => {
+export const InjectPro = createPropertyDecorator<InjectOptions | any, InjectOptions>(InjectProMetadataKey, (item: IPropertyDecorator<any, InjectOptions>) => {
     if (item.options) {
         if (isInjectOptions(item.options)) {
             item.options = {

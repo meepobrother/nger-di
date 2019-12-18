@@ -1,6 +1,6 @@
 {
     "name": "@nger/di",
-    "version": "1.4.4",
+    "version": "1.4.6",
     "description": "> TODO: description",
     "author": "imeepos <1037483576@qq.com>",
     "homepage": "https://github.com/meepobrother/nger-di#readme",
@@ -29,6 +29,6 @@
         "url": "https://github.com/meepobrother/nger-di/issues"
     },
     "dependencies": {
-        "@nger/decorator": "^1.1.8"
+        "@nger/decorator": "^1.1.12"
     }
 }
