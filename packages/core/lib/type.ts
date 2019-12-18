@@ -133,12 +133,7 @@ export interface SchemaMetadata {
 
 export interface ModuleWithProviders<T = any> {
     ngModule: Type<T>;
-    providers: Provider[];
-}
-
-export interface ModuleWithDeclarations<T = any> {
-    ngModule: Type<T>;
-    providers: Provider[];
+    providers: (Provider | Provider[])[];
 }
 
 export enum InjectFlags {

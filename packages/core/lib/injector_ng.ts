@@ -8,7 +8,7 @@ export const SOURCE = '__source';
 const _THROW_IF_NOT_FOUND = Symbol.for(`_THROW_IF_NOT_FOUND`);
 export const THROW_IF_NOT_FOUND = _THROW_IF_NOT_FOUND;
 import { getINgerDecorator, IClassDecorator } from '@nger/decorator';
-import { InjectableMetadataKey, InjectableOptions } from './decorator';
+import { InjectableMetadataKey, InjectableOptions, Optional, SkipSelf, Self } from './decorator';
 import { providerToStaticProvider } from './providerToStaticProvider';
 export function getInjectableDef(token: any): InjectableOptions | undefined {
     if (!token) return undefined;
@@ -415,11 +415,11 @@ function computeDeps(provider: StaticProvider): DependencyRecord[] {
             if (token instanceof Array) {
                 for (let j = 0, annotations = token; j < annotations.length; j++) {
                     const annotation = annotations[j];
-                    if (annotation === InjectFlags.Optional) {
+                    if (annotation === InjectFlags.Optional || annotation instanceof Optional) {
                         options = options | OptionFlags.Optional;
-                    } else if (annotation === InjectFlags.SkipSelf) {
+                    } else if (annotation === InjectFlags.SkipSelf || annotation instanceof SkipSelf) {
                         options = options & ~OptionFlags.CheckSelf;
-                    } else if (annotation === InjectFlags.Self) {
+                    } else if (annotation === InjectFlags.Self || annotation instanceof Self) {
                         options = options & ~OptionFlags.CheckParent;
                     } else {
                         token = resolveForwardRef(annotation);
