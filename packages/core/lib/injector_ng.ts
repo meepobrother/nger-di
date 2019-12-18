@@ -176,16 +176,16 @@ export class StaticInjector implements Injector {
                                 token,
                                 record
                             );
-                        } else {
-                            if (isTypeProvider(token)) {
-                                record = resolveProvider(providerToStaticProvider(token));
-                                records.set(
-                                    token,
-                                    record
-                                );
-                            }
                         }
                     }
+                }
+                const nger = getINgerDecorator(token as any);
+                if (nger.classes.length > 0) {
+                    record = resolveProvider(providerToStaticProvider(token as any));
+                    records.set(
+                        token,
+                        record
+                    );
                 }
                 if (record === undefined) {
                     records.set(token, null as any);
