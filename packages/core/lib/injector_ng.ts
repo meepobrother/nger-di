@@ -1,4 +1,4 @@
-import { Type, InjectFlags, OptionFlags } from './type';
+import { Type, InjectFlags, OptionFlags, isTypeProvider } from './type';
 import { getClosureSafeProperty, stringify, resolveForwardRef } from './util';
 import { InjectionToken } from './injection_token';
 import { setCurrentInjector } from './injector_compatibility';
@@ -9,6 +9,7 @@ const _THROW_IF_NOT_FOUND = Symbol.for(`_THROW_IF_NOT_FOUND`);
 export const THROW_IF_NOT_FOUND = _THROW_IF_NOT_FOUND;
 import { getINgerDecorator, IClassDecorator } from '@nger/decorator';
 import { InjectableMetadataKey, InjectableOptions } from './decorator';
+import { providerToStaticProvider } from './providerToStaticProvider';
 export function getInjectableDef(token: any): InjectableOptions | undefined {
     if (!token) return undefined;
     if (token instanceof InjectionToken) {
@@ -153,6 +154,9 @@ export class StaticInjector implements Injector {
         });
     }
     get<T>(token: IToken<T>, notFoundValue?: T | undefined | null, flags: InjectFlags = InjectFlags.Default): T {
+        return this._get(token, notFoundValue, flags);
+    }
+    private _get<T>(token: IToken<T>, notFoundValue?: T | undefined | null, flags: InjectFlags = InjectFlags.Default) {
         const records = this._records;
         let record = records.get(token);
         if (record === undefined) {
@@ -172,6 +176,14 @@ export class StaticInjector implements Injector {
                                 token,
                                 record
                             );
+                        } else {
+                            if (isTypeProvider(token)) {
+                                record = resolveProvider(providerToStaticProvider(token));
+                                records.set(
+                                    token,
+                                    record
+                                );
+                            }
                         }
                     }
                 }
