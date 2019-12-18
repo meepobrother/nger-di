@@ -167,7 +167,6 @@ export class StaticInjector implements Injector {
             else if (typeof token === 'undefined') { }
             else {
                 const nger = getINgerDecorator(token as any);
-                let handler = false;
                 if (nger.classes.length > 0) {
                     const injectableDef = getInjectableDef(token);
                     if (injectableDef) {
@@ -179,16 +178,8 @@ export class StaticInjector implements Injector {
                                     token,
                                     record
                                 );
-                                handler = true;
                             }
                         }
-                    }
-                    if (!handler) {
-                        record = resolveProvider(providerToStaticProvider(token as any));
-                        records.set(
-                            token,
-                            record
-                        );
                     }
                 }
                 if (record === undefined) {
