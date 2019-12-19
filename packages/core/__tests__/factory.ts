@@ -1,38 +1,22 @@
-import { Injector, InjectFlags } from '../lib';
+import { rootInjector, Injectable, INJECTOR_SCOPE, InjectionToken } from '../lib';
+@Injectable({
+    providedIn: 'root'
+})
 export class Demo1 {
     time: number = new Date().getTime() + Math.random();
     title: string;
-    constructor(title: string) {
-        this.title = title;
-    }
 }
+
+@Injectable({
+    providedIn: 'platform'
+})
 export class Demo2 {
-    time: number = new Date().getTime()
-    constructor(public demo1: Demo1) { }
+    time: number = new Date().getTime() + Math.random();
+    title: string;
 }
-// ConstructorProvider
-const injector = Injector.create([
-    {
-        provide: Demo1,
-        useFactory: () => {
-            return new Demo1(`injector0`);
-        }
-    }
-]);
-
-const injector2 = Injector.create([{
-    provide: Demo1,
-    useFactory: () => {
-        return new Demo1(`injector2`);
-    }
-}, {
-    provide: Demo2,
-    deps: [
-        [InjectFlags.SkipSelf, InjectFlags.Optional, Demo1]
-    ]
-}], injector)
-
-const demo3 = injector2.get(Demo2)
-// true
-const isEqual = demo3.demo1 === injector.get(Demo1)
+const token = new InjectionToken(`token`)
+const inejctor = rootInjector.create([{ provide: INJECTOR_SCOPE, useValue: 'platform' }, { provide: token, useValue: 1, multi: true }])
+const appModuleInjector = inejctor.create([{ provide: token, useValue: 2, multi: true }, { provide: token, useValue: 3, multi: true }], 'AppModule')
+debugger;
+const tokens = appModuleInjector.get(token)
 debugger;

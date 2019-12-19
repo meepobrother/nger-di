@@ -3,7 +3,7 @@ import { createClassDecorator, createParameterDecorator, createPropertyDecorator
 
 export const InjectableMetadataKey = `InjectableMetadataKey`;
 export interface InjectableOptions {
-    providedIn?: Type<any> | 'root' | null | string;
+    providedIn?: Type<any> | 'root' | 'platform' | 'any' | null | string;
     factory?: Function;
     deps?: any[];
 }

@@ -8,4 +8,3 @@ export function setCurrentInjector(injector: Injector | null | undefined): Injec
 export function getCurrentInjector(): Injector | undefined | null {
     return _currentInjector;
 }
-

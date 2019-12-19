@@ -1,4 +1,4 @@
-import { Type, InjectFlags, OptionFlags, isTypeProvider } from './type';
+import { Type, InjectFlags, OptionFlags, isTypeProvider, Provider } from './type';
 import { getClosureSafeProperty, stringify, resolveForwardRef } from './util';
 import { InjectionToken } from './injection_token';
 import { setCurrentInjector } from './injector_compatibility';
@@ -25,8 +25,9 @@ export const INJECTOR = new InjectionToken<Injector>(
     'INJECTOR',
     -1 as any  // `-1` is used by Ivy DI system as special value to recognize it as `Injector`.
 );
-
+export const PLATFORM_ID = new InjectionToken(`__platform_id__`)
 export class NullInjector implements Injector {
+    parent: undefined = undefined;
     get(token: any, notFoundValue: any = _THROW_IF_NOT_FOUND): any {
         if (notFoundValue === _THROW_IF_NOT_FOUND) {
             const error = new Error(`NullInjectorError: No provider for ${stringify(token)}!`);
@@ -36,12 +37,16 @@ export class NullInjector implements Injector {
         return notFoundValue;
     }
     clearCache(token: any): void { }
+    setProvider(providers: Provider[]): void { }
     create(records: StaticProvider[], source?: string | null): Injector {
         return new NullInjector() as Injector;
     }
     setStatic(records: StaticProvider[]) { }
     getRecord(token: any): Record | undefined {
         return;
+    }
+    getRecords(): Map<any, Record> {
+        return new Map();
     }
     setRecord(token: any, record: Record) { }
 }
@@ -65,12 +70,15 @@ export class NullInjector implements Injector {
 export abstract class Injector {
     static THROW_IF_NOT_FOUND = _THROW_IF_NOT_FOUND;
     static NULL: Injector = new NullInjector() as Injector;
+    parent: Injector | undefined;
     abstract get<T>(token: IToken<T>, notFoundValue?: T | undefined | null, flags?: InjectFlags): T;
     abstract create(records: StaticProvider[], source?: string | null): Injector;
     abstract setStatic(records: StaticProvider[]): void;
     abstract clearCache(token: any): void;
+    abstract setProvider(providers: Provider[]): void;
     abstract getRecord(token: any): Record | undefined;
     abstract setRecord(token: any, record: Record): void;
+    abstract getRecords(): Map<any, Record>;
     static create(providers: StaticProvider[], parent?: Injector): Injector;
     static create(options: { providers: StaticProvider[], parent?: Injector, name?: string }): Injector;
     static create(
@@ -138,7 +146,7 @@ export class StaticInjector implements Injector {
             Injector, <Record>{ token: Injector, fn: IDENT, deps: EMPTY, value: this, useNew: false });
         records.set(
             INJECTOR, <Record>{ token: INJECTOR, fn: IDENT, deps: EMPTY, value: this, useNew: false });
-        this.scope = recursivelyProcessProviders(records, providers);
+        this.scope = recursivelyProcessProviders(this, providers);
     }
     clearCache(token: any): void {
         const record = this._records.get(token)
@@ -155,6 +163,9 @@ export class StaticInjector implements Injector {
     }
     get<T>(token: IToken<T>, notFoundValue?: T | undefined | null, flags: InjectFlags = InjectFlags.Default): T {
         return this._get(token, notFoundValue, flags);
+    }
+    getRecords() {
+        return this._records;
     }
     private _get<T>(token: IToken<T>, notFoundValue?: T | undefined | null, flags: InjectFlags = InjectFlags.Default) {
         const records = this._records;
@@ -174,11 +185,13 @@ export class StaticInjector implements Injector {
                         if (providedIn === 'any' || providedIn != null && providedIn === this.scope) {
                             if (injectableDef.factory) {
                                 record = resolveProvider({ provide: token, useFactory: injectableDef.factory, deps: injectableDef.deps || EMPTY })
-                                records.set(
-                                    token,
-                                    record
-                                );
+                            } else {
+                                record = resolveProvider(providerToStaticProvider(token as any))
                             }
+                            records.set(
+                                token,
+                                record
+                            );
                         }
                     }
                 }
@@ -199,8 +212,12 @@ export class StaticInjector implements Injector {
     create(records: StaticProvider[], source: string | null = null) {
         return new StaticInjector(records, this, source)
     }
+    setProvider(providers: Provider[]) {
+        const records = providers.map(it => providerToStaticProvider(it))
+        recursivelyProcessProviders(this, records)
+    }
     setStatic(records: StaticProvider[]) {
-        recursivelyProcessProviders(this._records, records)
+        recursivelyProcessProviders(this, records)
     }
     toString() {
         const tokens = <string[]>[], records = this._records;
@@ -263,15 +280,16 @@ function multiProviderMixError(token: any) {
     return staticError('Cannot mix multi providers and regular providers', token);
 }
 
-function recursivelyProcessProviders(records: Map<any, Record>, provider: StaticProvider | StaticProvider[]): string |
+function recursivelyProcessProviders(injector: Injector, provider: StaticProvider | StaticProvider[]): string |
     null {
+    const records = injector.getRecords();
     let scope: string | null = null;
     if (provider) {
         provider = resolveForwardRef(provider);
         if (Array.isArray(provider)) {
             // if we have an array recurse into the array
             for (let i = 0; i < provider.length; i++) {
-                scope = recursivelyProcessProviders(records, provider[i]) || scope;
+                scope = recursivelyProcessProviders(injector, provider[i]) || scope;
             }
         } else if (typeof provider === 'function') {
             // Functions were supported in ReflectiveInjector, but are not here. For safety give useful
@@ -284,6 +302,11 @@ function recursivelyProcessProviders(records: Map<any, Record>, provider: Static
             if (provider.multi === true) {
                 // This is a multi provider.
                 let multiProvider: Record | undefined = records.get(token);
+                if (!multiProvider) {
+                    // 本级记录没有 取上级
+                    multiProvider = injector.getRecord(token)
+                    if (multiProvider) records.set(token, multiProvider)
+                }
                 if (multiProvider) {
                     if (multiProvider.fn !== MULTI_PROVIDER_FN) {
                         throw multiProviderMixError(token);
@@ -474,3 +497,11 @@ function formatError(
 function staticError(text: string, obj: any): Error {
     return new Error(formatError(text, obj, 'StaticInjectorError'));
 }
+
+export const rootInjector = Injector.create([{
+    provide: INJECTOR_SCOPE,
+    useValue: 'root'
+}, {
+    provide: PLATFORM_ID,
+    useValue: `unknown`
+}])
