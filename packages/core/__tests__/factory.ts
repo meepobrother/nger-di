@@ -1,4 +1,4 @@
-import { rootInjector, Injectable, INJECTOR_SCOPE, InjectionToken } from '../lib';
+import { rootInjector, Injectable, INJECTOR_SCOPE, InjectionToken, SkipSelf, Self, Optional } from '../lib';
 @Injectable({
     providedIn: 'root'
 })
@@ -17,6 +17,5 @@ export class Demo2 {
 const token = new InjectionToken(`token`)
 const inejctor = rootInjector.create([{ provide: INJECTOR_SCOPE, useValue: 'platform' }, { provide: token, useValue: 1, multi: true }])
 const appModuleInjector = inejctor.create([{ provide: token, useValue: 2, multi: true }, { provide: token, useValue: 3, multi: true }], 'AppModule')
-debugger;
 const tokens = appModuleInjector.get(token)
 debugger;
