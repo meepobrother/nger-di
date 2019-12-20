@@ -59,6 +59,9 @@ export function isStaticClassProvider(val: StaticProvider): val is StaticClassPr
 export function isFactoryProvider(val: StaticProvider): val is FactoryProvider {
     return !!(val as FactoryProvider).useFactory
 }
+export function isConstructorProvider(val: StaticProvider): val is ConstructorProvider {
+    return !isValueProvider(val) && !isExistingProvider(val) && !isStaticClassProvider(val) && !isFactoryProvider(val)
+}
 // ConstructorProvider
 
 export interface ClassSansProvider {
