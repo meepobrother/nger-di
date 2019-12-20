@@ -1,5 +1,5 @@
 import { Type } from "./type";
-import { createClassDecorator, createParameterDecorator, createPropertyDecorator, IParameterDecorator, IConstructorDecorator, IPropertyDecorator } from "@nger/decorator";
+import { createClassDecorator, createParameterDecorator, createPropertyDecorator, IParameterDecorator, IConstructorDecorator, IPropertyDecorator, createDecorator } from "@nger/decorator";
 
 export const InjectableMetadataKey = `InjectableMetadataKey`;
 export interface InjectableOptions {
@@ -19,7 +19,7 @@ export interface InjectOptions {
 function isInjectOptions(opt: any): opt is InjectOptions {
     return opt && !!opt.token;
 }
-export const Inject = createParameterDecorator<InjectOptions | any, InjectOptions>(InjectMetadataKey, (item: IParameterDecorator<any, InjectOptions> | IConstructorDecorator<any, InjectOptions>) => {
+export const Inject = createDecorator<InjectOptions | any, InjectOptions>(InjectMetadataKey, (item: IParameterDecorator<any, InjectOptions> | IConstructorDecorator<any, InjectOptions>) => {
     if (item.options) {
         if (isInjectOptions(item.options)) {
             item.options = {
@@ -37,26 +37,6 @@ export const Inject = createParameterDecorator<InjectOptions | any, InjectOption
         }
     }
 });
-
-export const InjectProMetadataKey = `InjectProMetadataKey`;
-export const InjectPro = createPropertyDecorator<InjectOptions | any, InjectOptions>(InjectProMetadataKey, (item: IPropertyDecorator<any, InjectOptions>) => {
-    if (item.options) {
-        if (isInjectOptions(item.options)) {
-            item.options = {
-                token: item.propertyType,
-                ...item.options
-            }
-        } else {
-            item.options = {
-                token: item.options
-            }
-        }
-    } else {
-        item.options = {
-            token: item.propertyType
-        }
-    }
-})
 
 /**
  * 可空
