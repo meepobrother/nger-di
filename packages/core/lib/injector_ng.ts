@@ -1,4 +1,4 @@
-import { Type, InjectFlags, OptionFlags, isTypeProvider, Provider } from './type';
+import { Type, InjectFlags, OptionFlags, isTypeProvider, Provider, TypeProvider } from './type';
 import { getClosureSafeProperty, stringify, resolveForwardRef } from './util';
 import { InjectionToken } from './injection_token';
 import { setCurrentInjector } from './injector_compatibility';
@@ -143,9 +143,9 @@ export class StaticInjector implements Injector {
         this.source = source;
         const records = this._records = new Map<any, Record>();
         records.set(
-            Injector, <Record>{ token: Injector, fn: IDENT, deps: EMPTY, value: this, useNew: false });
+            Injector, <Record>{ token: Injector, fn: IDENT, deps: EMPTY, value: this, useNew: false, noCache: false });
         records.set(
-            INJECTOR, <Record>{ token: INJECTOR, fn: IDENT, deps: EMPTY, value: this, useNew: false });
+            INJECTOR, <Record>{ token: INJECTOR, fn: IDENT, deps: EMPTY, value: this, useNew: false, noCache: false });
         this.scope = recursivelyProcessProviders(this, providers);
     }
     clearCache(token: any): void {
@@ -242,6 +242,7 @@ interface Record {
     useNew: boolean;
     deps: DependencyRecord[];
     value: any;
+    noCache: boolean;
 }
 
 interface DependencyRecord {
@@ -255,25 +256,29 @@ function resolveProvider(provider: SupportedProvider): Record {
     let value: any = EMPTY;
     let useNew: boolean = false;
     let provide = resolveForwardRef(provider.provide);
+    let noCache = false;
     if (USE_VALUE in provider) {
         // We need to use USE_VALUE in provider since provider.useValue could be defined as undefined.
         value = (provider as ValueProvider).useValue;
     } else if ((provider as FactoryProvider).useFactory) {
         fn = (provider as FactoryProvider).useFactory;
+        noCache = !!(provider as FactoryProvider).noCache;
     } else if ((provider as ExistingProvider).useExisting) {
         // Just use IDENT
     } else if ((provider as StaticClassProvider).useClass) {
         useNew = true;
         fn = resolveForwardRef((provider as StaticClassProvider).useClass);
+        noCache = !!(provider as StaticClassProvider).noCache;
     } else if (typeof provide == 'function') {
         useNew = true;
         fn = provide;
+        noCache = !!(provider as ConstructorProvider).noCache;
     } else {
         throw staticError(
             'StaticProvider does not have [useValue|useFactory|useExisting|useClass] or [provide] is not newable',
             provider);
     }
-    return { deps, fn, useNew, value };
+    return { deps, fn, useNew, value, noCache };
 }
 
 function multiProviderMixError(token: any) {
@@ -318,7 +323,8 @@ function recursivelyProcessProviders(injector: Injector, provider: StaticProvide
                         deps: [],
                         useNew: false,
                         fn: MULTI_PROVIDER_FN,
-                        value: EMPTY
+                        value: EMPTY,
+                        noCache: true
                     });
                 }
                 // Treat the provider as the token.
@@ -378,6 +384,9 @@ function resolveToken(
         // If we don't have a record, this implies that we don't own the provider hence don't know how
         // to resolve it.
         value = record.value;
+        if (record.noCache) {
+            value = EMPTY;
+        }
         if (value == CIRCULAR) {
             throw Error(NO_NEW_LINE + 'Circular dependency');
         } else if (value === EMPTY) {

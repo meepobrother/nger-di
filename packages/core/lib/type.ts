@@ -19,6 +19,7 @@ export interface StaticClassSansProvider {
 export interface StaticClassProvider extends StaticClassSansProvider {
     provide: any;
     multi?: boolean;
+    noCache?: boolean;
 }
 export interface ConstructorSansProvider {
     deps?: any[];
@@ -26,6 +27,7 @@ export interface ConstructorSansProvider {
 export interface ConstructorProvider extends ConstructorSansProvider {
     provide: Type<any>;
     multi?: boolean;
+    noCache?: boolean;
 }
 export interface ExistingSansProvider {
     useExisting: any;
@@ -41,6 +43,7 @@ export interface FactorySansProvider {
 export interface FactoryProvider extends FactorySansProvider {
     provide: any;
     multi?: boolean;
+    noCache?: boolean;
 }
 export type StaticProvider = ValueProvider | ExistingProvider | StaticClassProvider | ConstructorProvider | FactoryProvider;
 // static 一共5个Provider 谢了4个is函数 剩余的哪一个是ConstructorProvider
