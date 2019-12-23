@@ -227,7 +227,7 @@ export class StaticInjector implements Injector {
         this.scope = recursivelyProcessProviders(this, records) || this.scope;
     }
     setStatic(records: StaticProvider[]) {
-        recursivelyProcessProviders(this, records)
+        this.scope = recursivelyProcessProviders(this, records) || this.scope;
     }
     toString() {
         const tokens = <string[]>[], records = this._records;
