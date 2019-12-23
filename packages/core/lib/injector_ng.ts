@@ -41,6 +41,9 @@ export class NullInjector implements Injector {
     create(records: StaticProvider[], source?: string | null): Injector {
         return new NullInjector() as Injector;
     }
+    getInjector(scope: string): Injector {
+        throw new Error(`can not found ${scope} injector`)
+    }
     setStatic(records: StaticProvider[]) { }
     getRecord(token: any): Record | undefined {
         return;
@@ -72,6 +75,7 @@ export abstract class Injector {
     static NULL: Injector = new NullInjector() as Injector;
     parent: Injector | undefined;
     abstract get<T>(token: IToken<T>, notFoundValue?: T | undefined | null, flags?: InjectFlags): T;
+    abstract getInjector(scope: string): Injector;
     abstract create(records: StaticProvider[], source?: string | null): Injector;
     abstract setStatic(records: StaticProvider[]): void;
     abstract clearCache(token: any): void;
@@ -163,6 +167,12 @@ export class StaticInjector implements Injector {
     }
     get<T>(token: IToken<T>, notFoundValue?: T | undefined | null, flags: InjectFlags = InjectFlags.Default): T {
         return this._get(token, notFoundValue, flags);
+    }
+    getInjector(scope: string): Injector {
+        if (this.scope === scope) {
+            return this;
+        }
+        return this.parent.getInjector(scope)
     }
     getRecords() {
         return this._records;
@@ -307,11 +317,10 @@ function recursivelyProcessProviders(injector: Injector, provider: StaticProvide
             if (provider.multi === true) {
                 // This is a multi provider.
                 let multiProvider: Record | undefined = records.get(token);
-                if (!multiProvider) {
-                    // 本级记录没有 取上级
-                    multiProvider = injector.getRecord(token)
-                    if (multiProvider) records.set(token, multiProvider)
-                }
+                // if (!multiProvider) {
+                //     multiProvider = injector.getRecord(token)
+                //     if (multiProvider) records.set(token, multiProvider)
+                // }
                 if (multiProvider) {
                     if (multiProvider.fn !== MULTI_PROVIDER_FN) {
                         throw multiProviderMixError(token);

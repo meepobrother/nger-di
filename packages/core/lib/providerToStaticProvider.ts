@@ -97,8 +97,6 @@ export function createProxy<T extends object>(instance: T, metadata: INgerDecora
                     return (...args: any[]) => {
                         const parameters = new Array(decorators[0].paramTypes.length);
                         decorators.map(it => {
-                            const methodHandler = injector.get<MethodHandler>(it.metadataKey!, null, InjectFlags.Optional);
-                            methodHandler && methodHandler(callHandler, target, injector, it);
                             it.parameters.map(parameter => {
                                 const handler = injector.get<ParameterHandler>(parameter.metadataKey, null, InjectFlags.Optional);
                                 handler && handler(callHandler, parameters, target, injector, parameter);
