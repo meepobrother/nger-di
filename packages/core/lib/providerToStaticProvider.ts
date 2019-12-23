@@ -79,10 +79,15 @@ export interface MethodHandler<T = any, O = any> {
 export interface ClassHandler<T = any, O = any> {
     (injector: Injector, parameter: IClassDecorator<T, O>): void;
 }
-export function createProxy<T extends object>(injector: Injector, type: Type<T>, ...deps: any[]): T {
-    const instance = new type(...deps)
+export function createProxy<T extends object>(_injector: Injector, type: Type<T>, ...deps: any[]): T {
+    const injector = _injector.create([], type.name)
     const getDecorator = injector.get(GET_INGER_DECORATOR, getINgerDecorator)
     const metadata = getDecorator(type);
+    metadata.classes.map(cls => {
+        const handler = injector.get<ClassHandler>(cls.metadataKey);
+        if (handler) handler(injector, cls)
+    });
+    const instance = new type(...deps);
     return new Proxy<T>(instance, {
         get(target: T, p: PropertyKey, receiver: any): any {
             const callHandler = Reflect.get(target, p);
