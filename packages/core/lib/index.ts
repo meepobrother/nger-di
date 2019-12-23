@@ -7,3 +7,4 @@ export * from './decorator';
 export * from './providerToStaticProvider';
 export * from './version';
 export * from './scope';
+export * from './injector_compatibility';

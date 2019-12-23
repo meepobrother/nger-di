@@ -1,4 +1,4 @@
-import { Type, InjectFlags, OptionFlags, isTypeProvider, Provider, TypeProvider } from './type';
+import { Type, InjectFlags, OptionFlags, Provider } from './type';
 import { getClosureSafeProperty, stringify, resolveForwardRef } from './util';
 import { InjectionToken } from './injection_token';
 import { setCurrentInjector } from './injector_compatibility';
@@ -9,7 +9,7 @@ const _THROW_IF_NOT_FOUND = Symbol.for(`_THROW_IF_NOT_FOUND`);
 export const THROW_IF_NOT_FOUND = _THROW_IF_NOT_FOUND;
 import { getINgerDecorator, IClassDecorator } from '@nger/decorator';
 import { InjectableMetadataKey, InjectableOptions, Optional, SkipSelf, Self, Inject } from './decorator';
-import { providerToStaticProvider } from './providerToStaticProvider';
+import { providerToStaticProvider, createProxy } from './providerToStaticProvider';
 export function getInjectableDef(token: any): InjectableOptions | undefined {
     if (!token) return undefined;
     if (token instanceof InjectionToken) {
@@ -202,7 +202,7 @@ export class StaticInjector implements Injector {
         }
         let lastInjector = setCurrentInjector(this);
         try {
-            return tryResolveToken(token, record, records, this.parent, notFoundValue, flags);
+            return tryResolveToken(this, token, record, records, this.parent, notFoundValue, flags);
         } catch (e) {
             return catchInjectorError(e, token, 'StaticInjectorError', this.source);
         } finally {
@@ -347,6 +347,7 @@ function recursivelyProcessProviders(injector: Injector, provider: StaticProvide
 }
 
 function tryResolveToken(
+    injector: Injector,
     token: any,
     record: Record | undefined,
     records: Map<any, Record>,
@@ -355,7 +356,7 @@ function tryResolveToken(
     flags: InjectFlags
 ): any {
     try {
-        return resolveToken(token, record, records, parent, notFoundValue, flags);
+        return resolveToken(injector, token, record, records, parent, notFoundValue, flags);
     } catch (e) {
         // ensure that 'e' is of type Error.
         if (!(e instanceof Error)) {
@@ -372,6 +373,7 @@ function tryResolveToken(
 }
 
 function resolveToken(
+    injector: Injector,
     token: any,
     record: Record | undefined,
     records: Map<any, Record>,
@@ -403,22 +405,20 @@ function resolveToken(
                     const options = depRecord.options;
                     const childRecord =
                         options & OptionFlags.CheckSelf ? records.get(depRecord.token) : undefined;
-                    deps.push(tryResolveToken(
-                        // Current Token to resolve
-                        depRecord.token,
-                        // A record which describes how to resolve the token.
-                        // If undefined, this means we don't have such a record
-                        childRecord,
-                        // Other records we know about.
-                        records,
-                        // If we don't know how to resolve dependency and we should not check parent for it,
-                        // than pass in Null injector.
-                        !childRecord && !(options & OptionFlags.CheckParent) ? Injector.NULL : parent,
-                        options & OptionFlags.Optional ? null : Injector.THROW_IF_NOT_FOUND,
-                        InjectFlags.Default));
+                    deps.push(
+                        tryResolveToken(
+                            injector,
+                            depRecord.token,
+                            childRecord,
+                            records,
+                            !childRecord && !(options & OptionFlags.CheckParent) ? Injector.NULL : parent,
+                            options & OptionFlags.Optional ? null : Injector.THROW_IF_NOT_FOUND,
+                            InjectFlags.Default
+                        )
+                    );
                 }
             }
-            record.value = value = useNew ? new (fn as any)(...deps) : fn.apply(obj, deps);
+            record.value = value = useNew ? createProxy(injector, fn as any, ...deps) : fn.apply(obj, deps);
         }
     } else if (!(flags & InjectFlags.Self)) {
         value = parent.get(token, notFoundValue, InjectFlags.Default);

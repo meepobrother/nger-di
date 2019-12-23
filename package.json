@@ -2,8 +2,7 @@
   "name": "root",
   "private": true,
   "devDependencies": {
-    "lerna": "^3.13.1",
-    "tsserver": "tsserver"
+    "lerna": "^3.13.1"
   },
   "dependencies": {
     "ts-node": "^8.5.4",
