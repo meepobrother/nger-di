@@ -133,7 +133,7 @@ export class StaticInjector implements Injector {
     readonly parent: Injector;
     readonly source: string | null;
     private _records: Map<any, Record>;
-    readonly scope: string | null;
+    scope: string | null;
     constructor(
         providers: StaticProvider[],
         parent: Injector = NULL_INJECTOR,
@@ -214,7 +214,7 @@ export class StaticInjector implements Injector {
     }
     setProvider(providers: Provider[]) {
         const records = providers.map(it => providerToStaticProvider(it))
-        recursivelyProcessProviders(this, records)
+        this.scope = recursivelyProcessProviders(this, records) || this.scope;
     }
     setStatic(records: StaticProvider[]) {
         recursivelyProcessProviders(this, records)
