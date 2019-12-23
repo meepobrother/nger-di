@@ -1,6 +1,6 @@
 import { getINgerDecorator, IConstructorDecorator, INgerDecorator, IMethodDecorator, IParameterDecorator, IPropertyDecorator, IClassDecorator } from '@nger/decorator';
 import { InjectMetadataKey, InjectOptions, OptionalMetadataKey, SelfMetadataKey, SkipSelfMetadataKey } from './decorator';
-import { isTypeProvider, Provider, StaticProvider, isClassProvider, InjectFlags, Type } from './type';
+import { isTypeProvider, Provider, StaticProvider, isClassProvider, InjectFlags, Type, isStaticClassProvider, isValueProvider, isFactoryProvider, isExistingProvider } from './type';
 import { InjectionToken } from './injection_token';
 import { Injector } from './injector_ng';
 export function providerToStaticProvider(provider: Provider): StaticProvider {
@@ -59,7 +59,6 @@ export function getClassInjectDeps(nger: INgerDecorator) {
     return deps;
 }
 
-
 /**
  * 装饰器扫描器
  */
@@ -79,15 +78,15 @@ export interface MethodHandler<T = any, O = any> {
 export interface ClassHandler<T = any, O = any> {
     (injector: Injector, parameter: IClassDecorator<T, O>): void;
 }
-export function createProxy<T extends object>(_injector: Injector, type: Type<T>, ...deps: any[]): T {
+export function createNewProxy<T extends object>(_injector: Injector, type: Type<T>, ...deps: any[]): T {
     const injector = _injector.create([], type.name)
     const getDecorator = injector.get(GET_INGER_DECORATOR, getINgerDecorator)
     const metadata = getDecorator(type);
-    metadata.classes.map(cls => {
-        const handler = injector.get<ClassHandler>(cls.metadataKey);
-        if (handler) handler(injector, cls)
-    });
     const instance = new type(...deps);
+    return createProxy(instance, metadata, injector)
+}
+
+export function createProxy<T extends object>(instance: T, metadata: INgerDecorator, injector: Injector): T {
     return new Proxy<T>(instance, {
         get(target: T, p: PropertyKey, receiver: any): any {
             const callHandler = Reflect.get(target, p);
@@ -112,13 +111,28 @@ export function createProxy<T extends object>(_injector: Injector, type: Type<T>
                     }
                 }
                 return callHandler;
-            } else {
+            } else if (metadata.properties.length > 0) {
                 metadata.properties.filter(it => it.property === p).map(it => {
                     const methodHandler = injector.get<PropertyHandler>(it.metadataKey!, null, InjectFlags.Optional);
                     methodHandler && methodHandler(callHandler, target, injector, it);
                 });
-                return Reflect.get(target, p)
+                return Reflect.get(instance, p)
+            } else {
+                return callHandler;
             }
         }
     })
+}
+
+export function createFuncProxy(injector: Injector, fn: Function, ...deps: any[]) {
+    let that = undefined;
+    const instance = fn.apply(that, ...deps);
+    const obj = Reflect.getPrototypeOf(instance);
+    if (obj) {
+        const type = Reflect.get(obj, 'constructor');
+        const getDecorator = injector.get(GET_INGER_DECORATOR, getINgerDecorator)
+        const metadata = getDecorator(type);
+        return createProxy(instance, metadata, injector)
+    }
+    return instance;
 }

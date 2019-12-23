@@ -9,7 +9,7 @@ const _THROW_IF_NOT_FOUND = Symbol.for(`_THROW_IF_NOT_FOUND`);
 export const THROW_IF_NOT_FOUND = _THROW_IF_NOT_FOUND;
 import { getINgerDecorator, IClassDecorator } from '@nger/decorator';
 import { InjectableMetadataKey, InjectableOptions, Optional, SkipSelf, Self, Inject } from './decorator';
-import { providerToStaticProvider, createProxy } from './providerToStaticProvider';
+import { providerToStaticProvider, createNewProxy, createFuncProxy, GET_INGER_DECORATOR } from './providerToStaticProvider';
 export function getInjectableDef(token: any): InjectableOptions | undefined {
     if (!token) return undefined;
     if (token instanceof InjectionToken) {
@@ -393,7 +393,6 @@ function resolveToken(
             throw Error(NO_NEW_LINE + 'Circular dependency');
         } else if (value === EMPTY) {
             record.value = CIRCULAR;
-            let obj = undefined;
             let useNew = record.useNew;
             let fn = record.fn;
             let depRecords = record.deps;
@@ -418,7 +417,7 @@ function resolveToken(
                     );
                 }
             }
-            record.value = value = useNew ? createProxy(injector, fn as any, ...deps) : fn.apply(obj, deps);
+            record.value = value = useNew ? createNewProxy(injector, fn as any, ...deps) : createFuncProxy(injector, fn, deps);
         }
     } else if (!(flags & InjectFlags.Self)) {
         value = parent.get(token, notFoundValue, InjectFlags.Default);
@@ -513,4 +512,7 @@ export const rootInjector = Injector.create([{
 }, {
     provide: PLATFORM_ID,
     useValue: `unknown`
+}, {
+    provide: GET_INGER_DECORATOR,
+    useValue: getINgerDecorator
 }])
