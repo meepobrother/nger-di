@@ -515,9 +515,9 @@ function staticError(text: string, obj: any): Error {
     return new Error(formatError(text, obj, 'StaticInjectorError'));
 }
 
-export const rootInjector = Injector.create([{
+export const topInjector = Injector.create([{
     provide: INJECTOR_SCOPE,
-    useValue: 'root'
+    useValue: 'top'
 }, {
     provide: PLATFORM_ID,
     useValue: `unknown`
