@@ -317,10 +317,10 @@ function recursivelyProcessProviders(injector: Injector, provider: StaticProvide
             if (provider.multi === true) {
                 // This is a multi provider.
                 let multiProvider: Record | undefined = records.get(token);
-                // if (!multiProvider) {
-                //     multiProvider = injector.getRecord(token)
-                //     if (multiProvider) records.set(token, multiProvider)
-                // }
+                if (!multiProvider) {
+                    multiProvider = injector.getRecord(token)
+                    if (multiProvider) records.set(token, multiProvider)
+                }
                 if (multiProvider) {
                     if (multiProvider.fn !== MULTI_PROVIDER_FN) {
                         throw multiProviderMixError(token);
