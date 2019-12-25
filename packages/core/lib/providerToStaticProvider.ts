@@ -95,7 +95,8 @@ export function createProxy<T extends object>(instance: T, metadata: INgerDecora
                 const decorators = metadata.methods.filter(it => it.property === p) as IMethodDecorator<T, any>[];
                 if (decorators && decorators.length > 0) {
                     return (...args: any[]) => {
-                        const parameters = new Array(decorators[0].paramTypes.length);
+                        let length = decorators[0].paramTypes.length > args.length ? decorators[0].paramTypes.length : args.length;
+                        const parameters = new Array(length).fill(undefined);
                         decorators.map(it => {
                             it.parameters.map(parameter => {
                                 const handler = injector.get<ParameterHandler>(parameter.metadataKey, null, InjectFlags.Optional);
