@@ -27,6 +27,7 @@ export const INJECTOR = new InjectionToken<Injector>(
 );
 export const PLATFORM_ID = new InjectionToken(`__platform_id__`)
 export class NullInjector implements Injector {
+    scope: string | null = null;
     parent: undefined = undefined;
     get(token: any, notFoundValue: any = _THROW_IF_NOT_FOUND): any {
         if (notFoundValue === _THROW_IF_NOT_FOUND) {
@@ -71,6 +72,7 @@ export class NullInjector implements Injector {
  * @publicApi
  */
 export abstract class Injector {
+    abstract scope: string | null;
     static THROW_IF_NOT_FOUND = _THROW_IF_NOT_FOUND;
     static NULL: Injector = new NullInjector() as Injector;
     parent: Injector | undefined;
