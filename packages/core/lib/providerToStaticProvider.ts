@@ -125,12 +125,34 @@ export function createProxy<T extends object>(instance: T, metadata: INgerDecora
 export function createFuncProxy(injector: Injector, fn: Function, ...deps: any[]) {
     let that = undefined;
     const instance = fn.apply(that, ...deps);
+    if (typeof instance === 'string') {
+        return instance;
+    }
+    if (typeof instance === 'number') {
+        return instance;
+    }
+    if (typeof instance === 'boolean') {
+        return instance;
+    }
+    if (typeof instance === 'bigint') {
+        return instance;
+    }
+    if (typeof instance === 'symbol') {
+        return instance;
+    }
+    if (typeof instance === 'undefined') {
+        return instance;
+    }
     const obj = Reflect.getPrototypeOf(instance);
     if (obj) {
         const type = Reflect.get(obj, 'constructor');
-        const getDecorator = injector.get(GET_INGER_DECORATOR, getINgerDecorator)
-        const metadata = getDecorator(type);
-        return createProxy(instance, metadata, injector)
+        if (type) {
+            const getDecorator = injector.get(GET_INGER_DECORATOR, getINgerDecorator)
+            const metadata = getDecorator(type);
+            if (metadata.classes.length > 0) {
+                return createProxy(instance, metadata, injector);
+            }
+        }
     }
     return instance;
 }
