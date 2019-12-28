@@ -1,5 +1,5 @@
 import { ParameterHandler } from './types';
-import { Injector} from '../injector_ng';
+import { Injector } from '../injector_ng';
 import { IMethodDecorator } from '@nger/decorator'
 export class MethodRef<T, O>{
     instance: T;
@@ -9,6 +9,10 @@ export class MethodRef<T, O>{
     constructor(metadata: IMethodDecorator<T, O>, injector: Injector) {
         this.metadata = metadata;
         this.injector = injector.create([], metadata.property as string)
+        if (metadata.metadataKey) {
+            const handler = this.injector.get<any>(metadata.metadataKey)
+            if (handler) handler(this)
+        }
         if (this.metadata.options) this.options = this.metadata.options;
     }
     call(injector: Injector, ...args: any[]) {

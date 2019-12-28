@@ -6,10 +6,12 @@ export class ProtoRef<T, O>{
     metadata: IPropertyDecorator<T, O>;
     options: O;
     injector: Injector;
+    handler: any;
     constructor(metadata: IPropertyDecorator<T, O>, injector: Injector) {
         this.injector = injector.create([], metadata.property as string);
         this.metadata = metadata;
         if (this.metadata.options) this.options = this.metadata.options;
+        this.handler = injector.get<PropertyHandler>(this.metadata.metadataKey!, null, InjectFlags.Optional);
     }
     call(injector: Injector, ...args: any[]) {
         injector.getRecords().forEach((it, key) => {
@@ -17,8 +19,7 @@ export class ProtoRef<T, O>{
         });
         const instance = injector.get(this.metadata.type);
         const val = Reflect.get(instance, this.metadata.property)
-        const methodHandler = injector.get<PropertyHandler>(this.metadata.metadataKey!, null, InjectFlags.Optional);
-        methodHandler && methodHandler(val, instance, this.injector, this.metadata);
+        this.handler && this.handler(val, instance, this);
         return Reflect.get(instance, this.metadata.property)
     }
 }
