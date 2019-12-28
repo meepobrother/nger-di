@@ -1,5 +1,5 @@
 import { Type } from "./type";
-import { createClassDecorator, createParameterDecorator, createPropertyDecorator, IParameterDecorator, IConstructorDecorator, IPropertyDecorator, createDecorator } from "@nger/decorator";
+import { createClassDecorator, createParameterDecorator, IParameterDecorator, IConstructorDecorator, createDecorator } from "@nger/decorator";
 
 export const InjectableMetadataKey = `InjectableMetadataKey`;
 export interface InjectableOptions {

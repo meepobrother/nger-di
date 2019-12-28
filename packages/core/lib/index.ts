@@ -8,3 +8,4 @@ export * from './providerToStaticProvider';
 export * from './version';
 export * from './scope';
 export * from './injector_compatibility';
+export * from './core'

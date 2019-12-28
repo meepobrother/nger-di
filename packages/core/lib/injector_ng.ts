@@ -9,7 +9,7 @@ const _THROW_IF_NOT_FOUND = Symbol.for(`_THROW_IF_NOT_FOUND`);
 export const THROW_IF_NOT_FOUND = _THROW_IF_NOT_FOUND;
 import { getINgerDecorator, IClassDecorator } from '@nger/decorator';
 import { InjectableMetadataKey, InjectableOptions, Optional, SkipSelf, Self, Inject } from './decorator';
-import { providerToStaticProvider, createNewProxy, createFuncProxy, GET_INGER_DECORATOR } from './providerToStaticProvider';
+import { providerToStaticProvider, GET_INGER_DECORATOR } from './providerToStaticProvider';
 export function getInjectableDef(token: any): InjectableOptions | undefined {
     if (!token) return undefined;
     if (token instanceof InjectionToken) {
@@ -428,7 +428,7 @@ function resolveToken(
                     );
                 }
             }
-            record.value = value = useNew ? createNewProxy(injector, fn as any, ...deps) : createFuncProxy(injector, fn, deps);
+            record.value = value = useNew ? new (fn as any)(...deps) : fn(...deps);
         }
     } else if (!(flags & InjectFlags.Self)) {
         value = parent.get(token, notFoundValue, InjectFlags.Default);

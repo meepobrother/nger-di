@@ -8,6 +8,7 @@
         "paths": {},
         "esModuleInterop": true,
         "experimentalDecorators": true,
+        "strictPropertyInitialization": false,
         "emitDecoratorMetadata": true
     },
     "include": [
