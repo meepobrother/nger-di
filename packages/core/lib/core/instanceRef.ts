@@ -3,6 +3,7 @@ import { Injector } from '../injector_ng';
 import { INgerDecorator, IPropertyDecorator, IMethodDecorator, IClassDecorator } from '@nger/decorator'
 import { ParameterHandler, PropertyHandler } from './types';
 import { InjectFlags, StaticProvider } from './../type';
+import { providerToStaticProvider } from '../providerToStaticProvider';
 export const CURRENT_METHOD_REF = new InjectionToken<InstanceRef<any>>(`@nger/di CURRENT_METHOD_REF`)
 export const CURRENT_PROTO_REF = new InjectionToken<InstanceRef<any>>(`@nger/di CURRENT_PROTO_REF`)
 export const PARENT_REF = new InjectionToken<InstanceRef<any, any>>(`@nger/di PARENT_REF`)
@@ -49,7 +50,7 @@ export class MethodRef<T, O>{
         }, {
             provide: CURRENT_METHOD_REF,
             useValue: this
-        }], metadata.property as string)
+        }, providerToStaticProvider(metadata.type)], metadata.property as string)
 
         if (metadata.metadataKey) {
             const handler = this.injector.get<any>(metadata.metadataKey)
@@ -60,6 +61,13 @@ export class MethodRef<T, O>{
     call(providers: StaticProvider[], ...args: any[]) {
         this.injector.setStatic(providers)
         this.instance = this.instance || this.injector.get(this.metadata.type);
+        this.parent.properties.map(it => {
+            const handler = this.injector.get<PropertyHandler>(this.metadata.metadataKey!, null, InjectFlags.Optional);
+            const val = Reflect.get(this.instance as any, this.metadata.property)
+            handler && handler(val, this.instance, this.injector, it.metadata);
+            const property = Reflect.get(this.instance as any, this.metadata.property)
+            Reflect.set(this.instance as any, it.metadata.property, property)
+        })
         const call = Reflect.get(this.instance as any, this.metadata.property);
         let length = this.metadata.paramTypes.length > args.length ? this.metadata.paramTypes.length : args.length;
         const parameters = new Array(length).fill(undefined);
