@@ -1,7 +1,11 @@
+import { InjectionToken } from './../injection_token';
 import { Injector } from '../injector_ng';
 import { INgerDecorator, IPropertyDecorator, IMethodDecorator, IClassDecorator } from '@nger/decorator'
 import { ParameterHandler, PropertyHandler } from './types';
-import { InjectFlags } from './../type';
+import { InjectFlags, StaticProvider } from './../type';
+export const CURRENT_METHOD_REF = new InjectionToken<InstanceRef<any>>(`@nger/di CURRENT_METHOD_REF`)
+export const CURRENT_PROTO_REF = new InjectionToken<InstanceRef<any>>(`@nger/di CURRENT_PROTO_REF`)
+export const PARENT_REF = new InjectionToken<InstanceRef<any, any>>(`@nger/di PARENT_REF`)
 
 export class ProtoRef<T, O>{
     metadata: IPropertyDecorator<T, O>;
@@ -10,17 +14,21 @@ export class ProtoRef<T, O>{
     handler: any;
     parent: InstanceRef<T>;
     constructor(metadata: IPropertyDecorator<T, O>, injector: Injector, parent: InstanceRef<T>) {
-        this.injector = injector.create([], metadata.property as string);
+        this.injector = injector.create([{
+            provide: PARENT_REF,
+            useValue: parent
+        }, {
+            provide: CURRENT_PROTO_REF,
+            useValue: this
+        }], metadata.property as string);
         this.metadata = metadata;
         this.parent = parent;
         if (this.metadata.options) this.options = this.metadata.options;
         this.handler = injector.get<PropertyHandler>(this.metadata.metadataKey!, null, InjectFlags.Optional);
     }
-    call(injector: Injector, ...args: any[]) {
-        injector.getRecords().forEach((it, key) => {
-            this.injector.setRecord(key, it)
-        });
-        const instance = injector.get(this.metadata.type);
+    call(providers: StaticProvider[], ...args: any[]) {
+        this.injector.setStatic(providers)
+        const instance = this.injector.get(this.metadata.type);
         const val = Reflect.get(instance, this.metadata.property)
         this.handler && this.handler(val, instance, this);
         return Reflect.get(instance, this.metadata.property)
@@ -35,19 +43,24 @@ export class MethodRef<T, O>{
     constructor(metadata: IMethodDecorator<T, O>, injector: Injector, parent: InstanceRef<T>) {
         this.metadata = metadata;
         this.parent = parent;
-        this.injector = injector.create([], metadata.property as string)
+        this.injector = injector.create([{
+            provide: PARENT_REF,
+            useValue: parent
+        }, {
+            provide: CURRENT_METHOD_REF,
+            useValue: this
+        }], metadata.property as string)
+
         if (metadata.metadataKey) {
             const handler = this.injector.get<any>(metadata.metadataKey)
             if (handler) handler(this)
         }
         if (this.metadata.options) this.options = this.metadata.options;
     }
-    call(injector: Injector, ...args: any[]) {
-        injector.getRecords().forEach((it, key) => {
-            this.injector.setRecord(key, it)
-        });
+    call(providers: StaticProvider[], ...args: any[]) {
+        this.injector.setStatic(providers)
         this.instance = this.instance || this.injector.get(this.metadata.type);
-        const call = Reflect.get(this.instance as any, this.metadata.property)
+        const call = Reflect.get(this.instance as any, this.metadata.property);
         let length = this.metadata.paramTypes.length > args.length ? this.metadata.paramTypes.length : args.length;
         const parameters = new Array(length).fill(undefined);
         this.metadata.parameters.map(it => {
@@ -57,7 +70,7 @@ export class MethodRef<T, O>{
         const pars = parameters.map((it, index) => {
             return Reflect.get(args, index) || it;
         });
-        if (call) return call.bind(...pars)
+        if (call) return call.bind(this.instance)(...pars)
     }
 }
 
