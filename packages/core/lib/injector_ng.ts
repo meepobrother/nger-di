@@ -29,6 +29,7 @@ export const PLATFORM_ID = new InjectionToken(`__platform_id__`)
 export class NullInjector implements Injector {
     scope: string | null = null;
     parent: undefined = undefined;
+    source: string | null;
     get(token: any, notFoundValue: any = _THROW_IF_NOT_FOUND): any {
         if (notFoundValue === _THROW_IF_NOT_FOUND) {
             const error = new Error(`NullInjectorError: No provider for ${stringify(token)}!`);
@@ -73,6 +74,7 @@ export class NullInjector implements Injector {
  */
 export abstract class Injector {
     abstract scope: string | null;
+    abstract source: string | null;
     static THROW_IF_NOT_FOUND = _THROW_IF_NOT_FOUND;
     static NULL: Injector = new NullInjector() as Injector;
     parent: Injector | undefined;
@@ -137,7 +139,7 @@ export type IToken<T> =
     ITokenAny<T>;
 export class StaticInjector implements Injector {
     readonly parent: Injector;
-    readonly source: string | null;
+    source: string | null;
     private _records: Map<any, Record>;
     scope: string | null;
     constructor(
