@@ -1,11 +1,7 @@
 import { Injector } from '../injector_ng';
-import { INgerDecorator } from '@nger/decorator'
-import { ParameterHandler } from './types';
-import { IMethodDecorator } from '@nger/decorator'
-
+import { INgerDecorator, IPropertyDecorator, IMethodDecorator, IClassDecorator } from '@nger/decorator'
+import { ParameterHandler, PropertyHandler } from './types';
 import { InjectFlags } from './../type';
-import { PropertyHandler } from './types';
-import { IPropertyDecorator } from '@nger/decorator'
 
 export class ProtoRef<T, O>{
     metadata: IPropertyDecorator<T, O>;
@@ -65,12 +61,14 @@ export class MethodRef<T, O>{
     }
 }
 
-export class InstanceRef<T> {
+export class InstanceRef<T = any, O = any> {
     properties: ProtoRef<T, any>[] = [];
     methods: MethodRef<T, any>[] = [];
     injector: Injector;
-    constructor(nger: INgerDecorator<T, any>, injector: Injector) {
+    metadata: IClassDecorator<T, O>;
+    constructor(nger: INgerDecorator<T, any>, metadata: IClassDecorator<T, O>, injector: Injector) {
         this.injector = injector;
+        this.metadata = metadata;
         this.properties = nger.properties.map(it => new ProtoRef(it, this.injector, this))
         this.methods = nger.methods.map(it => new MethodRef(it, this.injector, this))
     }
