@@ -15,13 +15,13 @@ export class MethodRef<T, O>{
         injector.getRecords().forEach((it, key) => {
             this.injector.setRecord(key, it)
         });
-        this.instance = this.instance || injector.get(this.metadata.type);
+        this.instance = this.instance || this.injector.get(this.metadata.type);
         const call = Reflect.get(this.instance as any, this.metadata.property)
         let length = this.metadata.paramTypes.length > args.length ? this.metadata.paramTypes.length : args.length;
         const parameters = new Array(length).fill(undefined);
         this.metadata.parameters.map(it => {
-            const handler = injector.get<ParameterHandler>(it.metadataKey, undefined)
-            if (handler) handler(call, parameters, this.instance, injector, it)
+            const handler = this.injector.get<ParameterHandler>(it.metadataKey, undefined)
+            if (handler) handler(call, parameters, this.instance, this.injector, it)
         });
         const pars = parameters.map((it, index) => {
             return Reflect.get(args, index) || it;

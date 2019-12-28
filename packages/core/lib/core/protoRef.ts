@@ -18,7 +18,7 @@ export class ProtoRef<T, O>{
         const instance = injector.get(this.metadata.type);
         const val = Reflect.get(instance, this.metadata.property)
         const methodHandler = injector.get<PropertyHandler>(this.metadata.metadataKey!, null, InjectFlags.Optional);
-        methodHandler && methodHandler(val, instance, injector, this.metadata);
+        methodHandler && methodHandler(val, instance, this.injector, this.metadata);
         return Reflect.get(instance, this.metadata.property)
     }
 }
