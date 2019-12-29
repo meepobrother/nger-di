@@ -1,5 +1,5 @@
 import { InjectionToken } from './../injection_token';
-import { Injector } from '../injector_ng';
+import { Injector, INJECTOR } from '../injector_ng';
 import { INgerDecorator, IPropertyDecorator, IMethodDecorator, IClassDecorator } from '@nger/decorator'
 import { ParameterHandler, PropertyHandler } from './types';
 import { InjectFlags, StaticProvider } from './../type';
@@ -60,6 +60,16 @@ export class MethodRef<T, O>{
     }
     call(providers: StaticProvider[], ...args: any[]) {
         this.injector.setStatic(providers)
+        const parent = this.injector.parent;
+        if (parent) {
+            parent.setStatic([{
+                provide: Injector,
+                useValue: this.injector
+            }, {
+                provide: INJECTOR,
+                useValue: this.injector
+            }])
+        }
         this.instance = this.instance || this.injector.get(this.metadata.type);
         this.parent.properties.map(it => {
             const handler = this.injector.get<PropertyHandler>(this.metadata.metadataKey!, null, InjectFlags.Optional);
