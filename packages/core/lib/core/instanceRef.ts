@@ -1,5 +1,5 @@
 import { InjectionToken } from './../injection_token';
-import { Injector, INJECTOR } from '../injector_ng';
+import { Injector, INJECTOR, StaticInjector } from '../injector_ng';
 import { INgerDecorator, IPropertyDecorator, IMethodDecorator, IClassDecorator } from '@nger/decorator'
 import { ParameterHandler, PropertyHandler } from './types';
 import { InjectFlags, StaticProvider } from './../type';
@@ -44,13 +44,25 @@ export class MethodRef<T, O>{
     constructor(metadata: IMethodDecorator<T, O>, injector: Injector, parent: InstanceRef<T>) {
         this.metadata = metadata;
         this.parent = parent;
-        this.injector = injector.create([{
-            provide: PARENT_REF,
-            useValue: parent
-        }, {
-            provide: CURRENT_METHOD_REF,
-            useValue: this
-        }, providerToStaticProvider(metadata.type)], metadata.property as string)
+        if (metadata.options) this.options = metadata.options;
+        const staticProviders: StaticProvider[] = [];
+        if (this.options) {
+            const providers = Reflect.get(this.options as any, 'providers')
+            if (Array.isArray(providers)) {
+                staticProviders.push(...providers.map(it => providerToStaticProvider(it)))
+            }
+        }
+        this.injector = injector.create([
+            {
+                provide: PARENT_REF,
+                useValue: parent
+            }, {
+                provide: CURRENT_METHOD_REF,
+                useValue: this
+            },
+            providerToStaticProvider(metadata.type),
+            ...staticProviders
+        ], metadata.property as string)
 
         if (metadata.metadataKey) {
             const handler = this.injector.get<any>(metadata.metadataKey)
@@ -60,16 +72,6 @@ export class MethodRef<T, O>{
     }
     call(providers: StaticProvider[], ...args: any[]) {
         this.injector.setStatic(providers)
-        const parent = this.injector.parent;
-        if (parent) {
-            parent.setStatic([{
-                provide: Injector,
-                useValue: this.injector
-            }, {
-                provide: INJECTOR,
-                useValue: this.injector
-            }])
-        }
         this.instance = this.instance || this.injector.get(this.metadata.type);
         this.parent.properties.map(it => {
             const handler = this.injector.get<PropertyHandler>(this.metadata.metadataKey!, null, InjectFlags.Optional);

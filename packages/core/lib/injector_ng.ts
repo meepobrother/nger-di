@@ -31,6 +31,9 @@ export class NullInjector implements Injector {
     parent: undefined = undefined;
     source: string | null;
     get(token: any, notFoundValue: any = _THROW_IF_NOT_FOUND): any {
+        return this._get(token, notFoundValue)
+    }
+    _get(token: any, notFoundValue: any = _THROW_IF_NOT_FOUND): any {
         if (notFoundValue === _THROW_IF_NOT_FOUND) {
             const error = new Error(`NullInjectorError: No provider for ${stringify(token)}!`);
             error.name = 'NullInjectorError';
@@ -169,7 +172,9 @@ export class StaticInjector implements Injector {
             }
         });
     }
+    static currentInjector: Injector;
     get<T>(token: IToken<T>, notFoundValue?: T | undefined | null, flags: InjectFlags = InjectFlags.Default): T {
+        StaticInjector.currentInjector = this;
         return this._get(token, notFoundValue, flags);
     }
     getInjector(scope: string): Injector {
@@ -181,7 +186,7 @@ export class StaticInjector implements Injector {
     getRecords() {
         return this._records;
     }
-    private _get<T>(token: IToken<T>, notFoundValue?: T | undefined | null, flags: InjectFlags = InjectFlags.Default) {
+    _get<T>(token: IToken<T>, notFoundValue?: T | undefined | null, flags: InjectFlags = InjectFlags.Default): T {
         const records = this._records;
         let record = records.get(token);
         if (record === undefined) {
@@ -216,7 +221,7 @@ export class StaticInjector implements Injector {
         }
         let lastInjector = setCurrentInjector(this);
         try {
-            return tryResolveToken(this, token, record, records, this.parent, notFoundValue, flags);
+            return tryResolveToken(StaticInjector.currentInjector, token, record, records, this.parent, notFoundValue, flags);
         } catch (e) {
             return catchInjectorError(e, token, 'StaticInjectorError', this.source);
         } finally {
@@ -417,17 +422,20 @@ function resolveToken(
                     const options = depRecord.options;
                     const childRecord =
                         options & OptionFlags.CheckSelf ? records.get(depRecord.token) : undefined;
-                    deps.push(
-                        tryResolveToken(
-                            injector,
-                            depRecord.token,
-                            childRecord,
-                            records,
-                            !childRecord && !(options & OptionFlags.CheckParent) ? Injector.NULL : parent,
-                            options & OptionFlags.Optional ? null : Injector.THROW_IF_NOT_FOUND,
-                            InjectFlags.Default
-                        )
-                    );
+                    deps.push(tryResolveToken(
+                        injector,
+                        // Current Token to resolve
+                        depRecord.token,
+                        // A record which describes how to resolve the token.
+                        // If undefined, this means we don't have such a record
+                        childRecord,
+                        // Other records we know about.
+                        records,
+                        // If we don't know how to resolve dependency and we should not check parent for it,
+                        // than pass in Null injector.
+                        !childRecord && !(options & OptionFlags.CheckParent) ? Injector.NULL : parent,
+                        options & OptionFlags.Optional ? null : Injector.THROW_IF_NOT_FOUND,
+                        InjectFlags.Default));
                 }
             }
             record.value = value = useNew ? new (fn as any)(...deps) : fn(...deps);
