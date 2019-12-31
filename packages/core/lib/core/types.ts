@@ -1,6 +1,6 @@
 import { IParameterDecorator } from '@nger/decorator';
 import { IPropertyDecorator, IClassDecorator, IMethodDecorator } from '@nger/decorator';
-import { Injector } from '../injector_ng';
+import { Injector } from '../injector';
 export interface ParameterHandler<T = any, O = any> {
     (handler: Function, parameters: Array<any>, instance: T, injector: Injector, parameter: IParameterDecorator<T, O>): void;
 }
