@@ -46,13 +46,14 @@ export class MethodRef<T, O>{
         this.parent = parent;
         if (metadata.options) this.options = metadata.options;
         const staticProviders: StaticProvider[] = [];
-        if (this.options) {
-            const providers = Reflect.get(this.options as any, 'providers')
+        if (parent.metadata.options) {
+            const providers = Reflect.get(parent.metadata.options as any, 'providers')
             if (Array.isArray(providers)) {
                 staticProviders.push(...providers.map(it => providerToStaticProvider(it)))
             }
         }
-        this.injector = injector.create([
+        this.injector = injector;
+        this.injector.setStatic([
             {
                 provide: PARENT_REF,
                 useValue: parent
@@ -62,7 +63,7 @@ export class MethodRef<T, O>{
             },
             providerToStaticProvider(metadata.type),
             ...staticProviders
-        ], metadata.property as string)
+        ])
 
         if (metadata.metadataKey) {
             const handler = this.injector.get<any>(metadata.metadataKey)
