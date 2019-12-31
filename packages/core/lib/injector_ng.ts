@@ -1,15 +1,12 @@
-import { Type, InjectFlags, OptionFlags, Provider } from './type';
-import { getClosureSafeProperty, stringify, resolveForwardRef } from './util';
+import { InjectFlags, OptionFlags, Provider } from './type';
+import { stringify, resolveForwardRef, staticError, catchInjectorError, NG_TEMP_TOKEN_PATH, NO_NEW_LINE } from './util';
 import { InjectionToken } from './injection_token';
 import { setCurrentInjector } from './injector_compatibility';
 import { ConstructorProvider, ExistingProvider, FactoryProvider, StaticClassProvider, StaticProvider, ValueProvider } from './type';
 import { INJECTOR_SCOPE } from './scope';
-export const SOURCE = '__source';
-const _THROW_IF_NOT_FOUND = Symbol.for(`_THROW_IF_NOT_FOUND`);
-export const THROW_IF_NOT_FOUND = _THROW_IF_NOT_FOUND;
 import { getINgerDecorator, IClassDecorator } from '@nger/decorator';
 import { InjectableMetadataKey, InjectableOptions, Optional, SkipSelf, Self, Inject } from './decorator';
-import { providerToStaticProvider, GET_INGER_DECORATOR } from './providerToStaticProvider';
+import { providerToStaticProvider } from './providerToStaticProvider';
 export function getInjectableDef(token: any): InjectableOptions | undefined {
     if (!token) return undefined;
     if (token instanceof InjectionToken) {
@@ -21,125 +18,10 @@ export function getInjectableDef(token: any): InjectableOptions | undefined {
     const injectable = nger.classes.find(it => it.metadataKey === InjectableMetadataKey) as IClassDecorator<any, InjectableOptions>;
     return injectable && injectable.options;
 }
-export const INJECTOR = new InjectionToken<Injector>(
-    'INJECTOR',
-    -1 as any  // `-1` is used by Ivy DI system as special value to recognize it as `Injector`.
-);
-export const PLATFORM_ID = new InjectionToken(`__platform_id__`)
-export class NullInjector implements Injector {
-    scope: string | null = null;
-    parent: undefined = undefined;
-    source: string | null;
-    get(token: any, notFoundValue: any = _THROW_IF_NOT_FOUND): any {
-        return this._get(token, notFoundValue)
-    }
-    _get(token: any, notFoundValue: any = _THROW_IF_NOT_FOUND): any {
-        if (notFoundValue === _THROW_IF_NOT_FOUND) {
-            const error = new Error(`NullInjectorError: No provider for ${stringify(token)}!`);
-            error.name = 'NullInjectorError';
-            throw error;
-        }
-        return notFoundValue;
-    }
-    clearCache(token: any): void { }
-    setProvider(providers: Provider[]): void { }
-    create(records: StaticProvider[], source?: string | null): Injector {
-        return new NullInjector() as Injector;
-    }
-    getInjector(scope: string): Injector {
-        throw new Error(`can not found ${scope} injector`)
-    }
-    setStatic(records: StaticProvider[]) { }
-    getRecord(token: any): Record | undefined {
-        return;
-    }
-    getRecords(): Map<any, Record> {
-        return new Map();
-    }
-    setRecord(token: any, record: Record) { }
-}
-
-/**
- * Concrete injectors implement this interface.
- *
- * For more details, see the ["Dependency Injection Guide"](guide/dependency-injection).
- *
- * @usageNotes
- * ### Example
- *
- * {@example core/di/ts/injector_spec.ts region='Injector'}
- *
- * `Injector` returns itself when given `Injector` as a token:
- *
- * {@example core/di/ts/injector_spec.ts region='injectInjector'}
- *
- * @publicApi
- */
-export abstract class Injector {
-    abstract scope: string | null;
-    abstract source: string | null;
-    static THROW_IF_NOT_FOUND = _THROW_IF_NOT_FOUND;
-    static NULL: Injector = new NullInjector() as Injector;
-    parent: Injector | undefined;
-    abstract get<T>(token: IToken<T>, notFoundValue?: T | undefined | null, flags?: InjectFlags): T;
-    abstract getInjector(scope: string): Injector;
-    abstract create(records: StaticProvider[], source?: string | null): Injector;
-    abstract setStatic(records: StaticProvider[]): void;
-    abstract clearCache(token: any): void;
-    abstract setProvider(providers: Provider[]): void;
-    abstract getRecord(token: any): Record | undefined;
-    abstract setRecord(token: any, record: Record): void;
-    abstract getRecords(): Map<any, Record>;
-    static create(providers: StaticProvider[], parent?: Injector): Injector;
-    static create(options: { providers: StaticProvider[], parent?: Injector, name?: string }): Injector;
-    static create(
-        options: StaticProvider[] | { providers: StaticProvider[], parent?: Injector, name?: string },
-        parent?: Injector
-    ): Injector {
-        if (Array.isArray(options)) {
-            return new StaticInjector(options, parent);
-        } else {
-            return new StaticInjector(options.providers, options.parent || parent, options.name || null);
-        }
-    }
-    /**
-     * @internal
-     * @nocollapse
-     */
-    static __NG_ELEMENT_ID__ = -1;
-}
-
-const IDENT = function <T>(value: T): T {
-    return value;
-};
-const EMPTY = <any[]>[];
-const CIRCULAR = IDENT;
-const MULTI_PROVIDER_FN = function (): any[] {
-    return Array.prototype.slice.call(arguments);
-};
-export const USE_VALUE =
-    getClosureSafeProperty<ValueProvider>({ provide: String, useValue: getClosureSafeProperty });
-
-const NG_TOKEN_PATH = 'ngTokenPath';
-export const NG_TEMP_TOKEN_PATH = 'ngTempTokenPath';
-const NULL_INJECTOR = Injector.NULL;
-const NEW_LINE = /\n/gm;
-const NO_NEW_LINE = 'ɵ';
-export interface Abstract<T> extends Function {
-    prototype: T;
-}
-export type ITokenString<T> = string & {
-    target: T
-}
-export type ITokenAny<T> = (number | string | object | Function | Array<any>) & {
-    target?: T;
-}
-export type IToken<T> =
-    Type<T> |
-    Abstract<T> |
-    InjectionToken<T> |
-    ITokenString<T> |
-    ITokenAny<T>;
+import {
+    NULL_INJECTOR, EMPTY, IDENT, MULTI_PROVIDER_FN,
+    Injector, IToken, USE_VALUE, INJECTOR, THROW_IF_NOT_FOUND, CIRCULAR, Record, DependencyRecord
+} from './injector/index'
 export class StaticInjector implements Injector {
     readonly parent: Injector;
     source: string | null;
@@ -172,9 +54,7 @@ export class StaticInjector implements Injector {
             }
         });
     }
-    static currentInjector: Injector;
     get<T>(token: IToken<T>, notFoundValue?: T | undefined | null, flags: InjectFlags = InjectFlags.Default): T {
-        StaticInjector.currentInjector = this;
         return this._get(token, notFoundValue, flags);
     }
     getInjector(scope: string): Injector {
@@ -190,12 +70,7 @@ export class StaticInjector implements Injector {
         const records = this._records;
         let record = records.get(token);
         if (record === undefined) {
-            if (typeof token === 'string') { }
-            else if (typeof token === 'number') { }
-            else if (typeof token === 'bigint') { }
-            else if (typeof token === 'boolean') { }
-            else if (typeof token === 'undefined') { }
-            else {
+            try {
                 const nger = getINgerDecorator(token as any);
                 if (nger.classes.length > 0) {
                     const injectableDef = getInjectableDef(token);
@@ -217,18 +92,18 @@ export class StaticInjector implements Injector {
                 if (record === undefined) {
                     records.set(token, null as any);
                 }
-            }
+            } catch (e) { }
         }
         let lastInjector = setCurrentInjector(this);
         try {
-            return tryResolveToken(StaticInjector.currentInjector, token, record, records, this.parent, notFoundValue, flags);
+            return tryResolveToken(this, token, record, records, this.parent, notFoundValue, flags);
         } catch (e) {
             return catchInjectorError(e, token, 'StaticInjectorError', this.source);
         } finally {
             setCurrentInjector(lastInjector);
         }
     }
-    create(records: StaticProvider[], source: string | null = null) {
+    create(records: StaticProvider[], source: string | null = null): Injector {
         return new StaticInjector(records, this, source)
     }
     setProvider(providers: Provider[]) {
@@ -255,19 +130,6 @@ export class StaticInjector implements Injector {
 
 type SupportedProvider =
     ValueProvider | ExistingProvider | StaticClassProvider | ConstructorProvider | FactoryProvider;
-
-interface Record {
-    fn: Function;
-    useNew: boolean;
-    deps: DependencyRecord[];
-    value: any;
-    noCache: boolean;
-}
-
-interface DependencyRecord {
-    token: any;
-    options: number;
-}
 
 function resolveProvider(provider: SupportedProvider): Record {
     const deps = computeDeps(provider);
@@ -326,10 +188,6 @@ function recursivelyProcessProviders(injector: Injector, provider: StaticProvide
             if (provider.multi === true) {
                 // This is a multi provider.
                 let multiProvider: Record | undefined = records.get(token);
-                // if (!multiProvider) {
-                //     multiProvider = injector.getRecord(token)
-                //     if (multiProvider) records.set(token, multiProvider)
-                // }
                 if (multiProvider) {
                     if (multiProvider.fn !== MULTI_PROVIDER_FN) {
                         throw multiProviderMixError(token);
@@ -433,8 +291,8 @@ function resolveToken(
                         records,
                         // If we don't know how to resolve dependency and we should not check parent for it,
                         // than pass in Null injector.
-                        !childRecord && !(options & OptionFlags.CheckParent) ? Injector.NULL : parent,
-                        options & OptionFlags.Optional ? null : Injector.THROW_IF_NOT_FOUND,
+                        !childRecord && !(options & OptionFlags.CheckParent) ? NULL_INJECTOR : parent,
+                        options & OptionFlags.Optional ? null : THROW_IF_NOT_FOUND,
                         InjectFlags.Default));
                 }
             }
@@ -443,9 +301,9 @@ function resolveToken(
     } else if (!(flags & InjectFlags.Self)) {
         value = parent.get(token, notFoundValue, InjectFlags.Default);
     } else if (!(flags & InjectFlags.Optional)) {
-        value = Injector.NULL.get(token, notFoundValue);
+        value = NULL_INJECTOR.get(token, notFoundValue);
     } else {
-        value = Injector.NULL.get(token, typeof notFoundValue !== 'undefined' ? notFoundValue : null);
+        value = NULL_INJECTOR.get(token, typeof notFoundValue !== 'undefined' ? notFoundValue : null);
     }
     return value;
 }
@@ -491,49 +349,3 @@ function computeDeps(provider: StaticProvider): DependencyRecord[] {
     return deps;
 }
 
-export function catchInjectorError(
-    e: any, token: any, injectorErrorName: string, source: string | null): never {
-    const tokenPath: any[] = e[NG_TEMP_TOKEN_PATH];
-    if (token[SOURCE]) {
-        tokenPath.unshift(token[SOURCE]);
-    }
-    e.message = formatError('\n' + e.message, tokenPath, injectorErrorName, source);
-    e[NG_TOKEN_PATH] = tokenPath;
-    e[NG_TEMP_TOKEN_PATH] = null;
-    throw e;
-}
-
-function formatError(
-    text: string, obj: any, injectorErrorName: string, source: string | null = null): string {
-    text = text && text.charAt(0) === '\n' && text.charAt(1) == NO_NEW_LINE ? text.substr(2) : text;
-    let context = stringify(obj);
-    if (obj instanceof Array) {
-        context = obj.map(stringify).join(' -> ');
-    } else if (typeof obj === 'object') {
-        let parts = <string[]>[];
-        for (let key in obj) {
-            if (obj.hasOwnProperty(key)) {
-                let value = obj[key];
-                parts.push(
-                    key + ':' + (typeof value === 'string' ? JSON.stringify(value) : stringify(value)));
-            }
-        }
-        context = `{${parts.join(', ')}}`;
-    }
-    return `${injectorErrorName}${source ? '(' + source + ')' : ''}[${context}]: ${text.replace(NEW_LINE, '\n  ')}`;
-}
-
-function staticError(text: string, obj: any): Error {
-    return new Error(formatError(text, obj, 'StaticInjectorError'));
-}
-
-export const topInjector = Injector.create([{
-    provide: INJECTOR_SCOPE,
-    useValue: 'top'
-}, {
-    provide: PLATFORM_ID,
-    useValue: `unknown`
-}, {
-    provide: GET_INGER_DECORATOR,
-    useValue: getINgerDecorator
-}])
