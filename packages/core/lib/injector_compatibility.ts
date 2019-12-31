@@ -1,4 +1,4 @@
-import { Injector } from './injector_ng';
+import { Injector } from './injector';
 let _currentInjector: Injector | undefined | null = undefined;
 export function setCurrentInjector(injector: Injector | null | undefined): Injector | undefined | null {
     const former = _currentInjector;
