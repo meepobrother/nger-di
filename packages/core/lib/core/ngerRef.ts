@@ -3,11 +3,14 @@ import { Injector } from "../injector";
 import { PropertyHandler, ParameterHandler } from './types'
 
 export class NgerRef<T> {
-    private nger: INgerDecorator<T>;
-    constructor(nger: INgerDecorator<T>) {
+    nger: INgerDecorator<T>;
+    injector: Injector;
+    constructor(nger: INgerDecorator<T>, injector: Injector) {
         this.nger = nger;
+        this.injector = injector;
     }
-    create(injector: Injector) {
+    create(_injector?: Injector) {
+        const injector = _injector || this.injector;
         const instance = injector.get(this.nger.type)
         this.nger.properties.map(it => {
             if (it.metadataKey) {
